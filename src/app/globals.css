@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-primary: #FDFBF7;
+    --bg-surface: #FFFFFF;
+    --text-primary: #1A2421;
+    --text-muted: #4A5551;
+    --brand-primary: #0D7855;
+    --brand-primary-hover: #0A6044;
+    --accent-terracotta: #E05638;
+    --accent-deep-terracotta: #C2410C;
+    --border-color: #E6E2D8;
+    --card-shadow: 0 4px 20px -2px rgba(13, 120, 85, 0.06);
+  }
+
+  .dark {
+    --bg-primary: #0A1411;
+    --bg-surface: #14241F;
+    --text-primary: #F4F6F5;
+    --text-muted: #94A8A0;
+    --brand-primary: #14A877;
+    --brand-primary-hover: #108A62;
+    --accent-terracotta: #FF6B4A;
+    --accent-deep-terracotta: #FF6B4A;
+    --border-color: #203830;
+    --card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.35);
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-inter), sans-serif;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-outfit), sans-serif;
+  }
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
