@@ -13,21 +13,21 @@ export function DemoTipsDrawer() {
         onClick={() => setIsOpen(true)}
         type="button"
         aria-label="Open Demo Tips and Test Triggers"
-        className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 bg-[var(--brand-primary)] text-white dark:text-[#0A1411] px-3.5 py-2 rounded-full shadow-lg hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:ring-offset-2 flex items-center gap-2 text-xs font-medium cursor-pointer transition-transform hover:scale-105"
+        className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 bg-[var(--brand-primary)] text-white dark:text-[#0A1411] px-3.5 py-2 rounded-full shadow-lg hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:ring-offset-2 flex items-center gap-2 text-xs font-medium cursor-pointer transition-transform hover:scale-[1.03] active:scale-[0.97]"
       >
         <Zap className="w-4 h-4 text-amber-300 dark:text-amber-900 fill-current" />
-        <span>Demo Tips & Triggers</span>
+        <span>Demo Tips &amp; Triggers</span>
       </button>
 
       {/* Drawer Overlay & Content */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs transition-opacity">
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/50 transition-opacity">
           <div className="w-full max-w-md bg-[var(--bg-surface)] text-[var(--text-primary)] h-full p-6 shadow-2xl flex flex-col justify-between overflow-y-auto border-l border-[var(--border-color)] animate-in slide-in-from-right duration-200">
             <div>
               <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-4 mb-5">
                 <div className="flex items-center gap-2">
                   <HelpCircle className="w-5 h-5 text-[var(--accent-terracotta)]" />
-                  <h3 className="text-lg font-bold font-heading">Tester Guide & Demo Credentials</h3>
+                  <h3 className="text-lg font-bold font-heading">Tester Guide &amp; Demo Credentials</h3>
                 </div>
                 <button
                   onClick={() => setIsOpen(false)}
