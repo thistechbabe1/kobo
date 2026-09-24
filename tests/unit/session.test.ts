@@ -46,7 +46,7 @@ describe('jose Encrypted Cookie State (lib/session)', () => {
     expect(unsealed.txs[0].nar).toBe('Transfer to Babatunde');
   });
 
-  it('MEASURED COOKIE SIZE TEST: max 10 user transactions must remain well under 3 KB (3072 bytes)', async () => {
+  it('MEASURED COOKIE SIZE TEST: max 10 user transactions must remain strictly under 3 KB (3072 bytes)', async () => {
     const fullTxs: CompactUserTx[] = Array.from({ length: MAX_USER_TX_CAP }, (_, i) => ({
       id: `TX99990${i}`,
       typ: i % 2 === 0 ? 'D' : 'C',
@@ -60,7 +60,7 @@ describe('jose Encrypted Cookie State (lib/session)', () => {
     }));
 
     const fullPayload: CompactSessionPayload = {
-      bal: 24500000,
+      bal: 24585050,
       pin: 0,
       loc: null,
       txs: fullTxs,
@@ -71,7 +71,7 @@ describe('jose Encrypted Cookie State (lib/session)', () => {
 
     console.log(`[Cookie Size Measurement] Sealed JWE token size with 10 user transactions: ${sizeInBytes} bytes`);
 
-    // Must be well under 3 KB limit (3072 bytes)
+    // Must be strictly under 3 KB limit (3072 bytes)
     expect(sizeInBytes).toBeLessThan(3072);
   });
 

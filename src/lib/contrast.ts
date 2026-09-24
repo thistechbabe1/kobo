@@ -80,50 +80,68 @@ export function evaluateContrastPair(
 }
 
 export const TERRA_PALM_TOKENS = {
-  // Light Mode
+  // Light Mode Surfaces
   sandBackground: '#FDFBF7',
   cardWhite: '#FFFFFF',
+  heroCardLight: '#0D7855', // Hero card background in light mode
+  
+  // Light Mode Text & Icons
   graphiteBody: '#1A2421',
   slateOliveMuted: '#4A5551',
-  palmGreenPrimary: '#0D7855',
-  deepTerracottaAccent: '#C2410C',
-  lightTerracottaText: '#E05638',
+  palmGreenCredit: '#0D7855', // Credit text / icon on light page & card
+  deepTerracottaDebit: '#C2410C', // Debit text on light page & card (5.01:1 on sand, 5.18:1 on white)
+  lightTerracottaIcon: '#E05638', // Icon on sand (3.66:1, passes 3:1 graphic rule)
   
-  // Dark Mode
+  // Dark Mode Surfaces
   deepMidnightBg: '#0A1411',
   forestCardSurface: '#14241F',
+  heroCardDark: '#14241F',
+  
+  // Dark Mode Text & Icons
   silkOffWhiteBody: '#F4F6F5',
   mutedMintText: '#94A8A0',
-  palmBrightPrimary: '#14A877',
-  coralBrightAccent: '#FF6B4A',
+  palmBrightCredit: '#14A877', // Credit text on dark page (6.15:1) & card (5.31:1)
+  coralDebitTextDark: '#FF6B4A', // Debit text on dark page (6.65:1) & card (5.73:1) - PASSES AA!
 };
 
 export const TOKEN_CONTRAST_PAIRS = [
-  // Light mode background pairs
-  { fg: TERRA_PALM_TOKENS.graphiteBody, bg: TERRA_PALM_TOKENS.sandBackground, fgName: 'Light Body (Graphite)', bgName: 'Light Background (Sand)' },
-  { fg: TERRA_PALM_TOKENS.slateOliveMuted, bg: TERRA_PALM_TOKENS.sandBackground, fgName: 'Light Muted (Slate Olive)', bgName: 'Light Background (Sand)' },
-  { fg: TERRA_PALM_TOKENS.palmGreenPrimary, bg: TERRA_PALM_TOKENS.sandBackground, fgName: 'Light Brand Green', bgName: 'Light Background (Sand)' },
-  { fg: TERRA_PALM_TOKENS.deepTerracottaAccent, bg: TERRA_PALM_TOKENS.sandBackground, fgName: 'Deep Terracotta Accent', bgName: 'Light Background (Sand)' },
-  { fg: TERRA_PALM_TOKENS.lightTerracottaText, bg: TERRA_PALM_TOKENS.sandBackground, fgName: 'Light Terracotta (Large/Icon)', bgName: 'Light Background (Sand)' },
+  // Light Mode - Main Page Surface (#FDFBF7)
+  { fg: TERRA_PALM_TOKENS.graphiteBody, bg: TERRA_PALM_TOKENS.sandBackground, fgName: 'Light Body (Graphite)', bgName: 'Light Page (Sand)' },
+  { fg: TERRA_PALM_TOKENS.slateOliveMuted, bg: TERRA_PALM_TOKENS.sandBackground, fgName: 'Light Muted Text', bgName: 'Light Page (Sand)' },
+  { fg: TERRA_PALM_TOKENS.palmGreenCredit, bg: TERRA_PALM_TOKENS.sandBackground, fgName: 'Light Semantic Credit Text', bgName: 'Light Page (Sand)' },
+  { fg: TERRA_PALM_TOKENS.deepTerracottaDebit, bg: TERRA_PALM_TOKENS.sandBackground, fgName: 'Light Semantic Debit Text', bgName: 'Light Page (Sand)' },
+  { fg: TERRA_PALM_TOKENS.lightTerracottaIcon, bg: TERRA_PALM_TOKENS.sandBackground, fgName: 'Light Graphic Icon (Terracotta)', bgName: 'Light Page (Sand)', isGraphic: true },
 
-  // Light mode card surface pairs
-  { fg: TERRA_PALM_TOKENS.graphiteBody, bg: TERRA_PALM_TOKENS.cardWhite, fgName: 'Light Body (Graphite)', bgName: 'Light Card Surface (White)' },
-  { fg: TERRA_PALM_TOKENS.slateOliveMuted, bg: TERRA_PALM_TOKENS.cardWhite, fgName: 'Light Muted (Slate Olive)', bgName: 'Light Card Surface (White)' },
+  // Light Mode - Card Surface (#FFFFFF)
+  { fg: TERRA_PALM_TOKENS.graphiteBody, bg: TERRA_PALM_TOKENS.cardWhite, fgName: 'Light Body (Graphite)', bgName: 'Light Card (White)' },
+  { fg: TERRA_PALM_TOKENS.slateOliveMuted, bg: TERRA_PALM_TOKENS.cardWhite, fgName: 'Light Muted Text', bgName: 'Light Card (White)' },
+  { fg: TERRA_PALM_TOKENS.palmGreenCredit, bg: TERRA_PALM_TOKENS.cardWhite, fgName: 'Light Semantic Credit Text', bgName: 'Light Card (White)' },
+  { fg: TERRA_PALM_TOKENS.deepTerracottaDebit, bg: TERRA_PALM_TOKENS.cardWhite, fgName: 'Light Semantic Debit Text', bgName: 'Light Card (White)' },
 
-  // Light mode button pairs
-  { fg: '#FFFFFF', bg: TERRA_PALM_TOKENS.palmGreenPrimary, fgName: 'White Button Text', bgName: 'Light Primary Green Button' },
-  { fg: '#FFFFFF', bg: TERRA_PALM_TOKENS.deepTerracottaAccent, fgName: 'White Button Text', bgName: 'Deep Terracotta Button' },
+  // Light Mode - Buttons & Hero
+  { fg: '#FFFFFF', bg: TERRA_PALM_TOKENS.palmGreenCredit, fgName: 'White Text', bgName: 'Light Green Button/Hero' },
+  { fg: '#FFFFFF', bg: TERRA_PALM_TOKENS.deepTerracottaDebit, fgName: 'White Text', bgName: 'Deep Terracotta Button' },
 
-  // Dark mode background pairs
-  { fg: TERRA_PALM_TOKENS.silkOffWhiteBody, bg: TERRA_PALM_TOKENS.deepMidnightBg, fgName: 'Dark Body (Silk Off-White)', bgName: 'Dark Background (Midnight)' },
-  { fg: TERRA_PALM_TOKENS.mutedMintText, bg: TERRA_PALM_TOKENS.deepMidnightBg, fgName: 'Dark Muted (Muted Mint)', bgName: 'Dark Background (Midnight)' },
-  { fg: TERRA_PALM_TOKENS.palmBrightPrimary, bg: TERRA_PALM_TOKENS.deepMidnightBg, fgName: 'Dark Brand Mint', bgName: 'Dark Background (Midnight)' },
-  { fg: TERRA_PALM_TOKENS.coralBrightAccent, bg: TERRA_PALM_TOKENS.deepMidnightBg, fgName: 'Dark Coral Accent', bgName: 'Dark Background (Midnight)' },
+  // Dark Mode - Main Page Surface (#0A1411)
+  { fg: TERRA_PALM_TOKENS.silkOffWhiteBody, bg: TERRA_PALM_TOKENS.deepMidnightBg, fgName: 'Dark Body (Silk Off-White)', bgName: 'Dark Page (Midnight)' },
+  { fg: TERRA_PALM_TOKENS.mutedMintText, bg: TERRA_PALM_TOKENS.deepMidnightBg, fgName: 'Dark Muted Text', bgName: 'Dark Page (Midnight)' },
+  { fg: TERRA_PALM_TOKENS.palmBrightCredit, bg: TERRA_PALM_TOKENS.deepMidnightBg, fgName: 'Dark Semantic Credit Text', bgName: 'Dark Page (Midnight)' },
+  { fg: TERRA_PALM_TOKENS.coralDebitTextDark, bg: TERRA_PALM_TOKENS.deepMidnightBg, fgName: 'Dark Semantic Debit Text (#FF6B4A)', bgName: 'Dark Page (Midnight)' },
 
-  // Dark mode card surface pairs (#14241F)
-  { fg: TERRA_PALM_TOKENS.silkOffWhiteBody, bg: TERRA_PALM_TOKENS.forestCardSurface, fgName: 'Dark Body (Silk Off-White)', bgName: 'Dark Card Surface (#14241F)' },
-  { fg: TERRA_PALM_TOKENS.mutedMintText, bg: TERRA_PALM_TOKENS.forestCardSurface, fgName: 'Dark Muted (Muted Mint)', bgName: 'Dark Card Surface (#14241F)' },
+  // Dark Mode - Card Surface (#14241F)
+  { fg: TERRA_PALM_TOKENS.silkOffWhiteBody, bg: TERRA_PALM_TOKENS.forestCardSurface, fgName: 'Dark Body (Silk Off-White)', bgName: 'Dark Card (#14241F)' },
+  { fg: TERRA_PALM_TOKENS.mutedMintText, bg: TERRA_PALM_TOKENS.forestCardSurface, fgName: 'Dark Muted Text', bgName: 'Dark Card (#14241F)' },
+  { fg: TERRA_PALM_TOKENS.palmBrightCredit, bg: TERRA_PALM_TOKENS.forestCardSurface, fgName: 'Dark Semantic Credit Text', bgName: 'Dark Card (#14241F)' },
+  { fg: TERRA_PALM_TOKENS.coralDebitTextDark, bg: TERRA_PALM_TOKENS.forestCardSurface, fgName: 'Dark Semantic Debit Text (#FF6B4A)', bgName: 'Dark Card (#14241F)' },
 
-  // Dark mode button pairs
-  { fg: TERRA_PALM_TOKENS.deepMidnightBg, bg: TERRA_PALM_TOKENS.palmBrightPrimary, fgName: 'Dark Text (#0A1411)', bgName: 'Dark Primary Mint Button (#14A877)' },
+  // Dark Mode - Buttons & Hero Text
+  { fg: TERRA_PALM_TOKENS.deepMidnightBg, bg: TERRA_PALM_TOKENS.palmBrightCredit, fgName: 'Dark Text (#0A1411)', bgName: 'Dark Primary Mint Button' },
+  { fg: '#FFFFFF', bg: TERRA_PALM_TOKENS.heroCardDark, fgName: 'White Hero Card Text', bgName: 'Dark Hero Card (#14241F)' },
+  { fg: TERRA_PALM_TOKENS.palmBrightCredit, bg: TERRA_PALM_TOKENS.heroCardDark, fgName: 'Mint Hero Card Accent', bgName: 'Dark Hero Card (#14241F)' },
+
+  // Chart Series Colors against Card Surfaces (Graphic/Icon 3.0:1 threshold)
+  { fg: TERRA_PALM_TOKENS.palmGreenCredit, bg: TERRA_PALM_TOKENS.cardWhite, fgName: 'Income Chart Series (Palm Green)', bgName: 'Light Card (White)', isGraphic: true },
+  { fg: TERRA_PALM_TOKENS.deepTerracottaDebit, bg: TERRA_PALM_TOKENS.cardWhite, fgName: 'Expense Chart Series (Terracotta)', bgName: 'Light Card (White)', isGraphic: true },
+  { fg: TERRA_PALM_TOKENS.palmBrightCredit, bg: TERRA_PALM_TOKENS.forestCardSurface, fgName: 'Income Chart Series (Mint)', bgName: 'Dark Card (#14241F)', isGraphic: true },
+  { fg: TERRA_PALM_TOKENS.coralDebitTextDark, bg: TERRA_PALM_TOKENS.forestCardSurface, fgName: 'Expense Chart Series (Coral #FF6B4A)', bgName: 'Dark Card (#14241F)', isGraphic: true },
 ];

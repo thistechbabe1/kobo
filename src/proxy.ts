@@ -1,43 +1,61 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { AUTH_COOKIE_NAME, unsealAuthToken } from '@/lib/session';
 
-export const AUTH_COOKIE_NAME = 'kobo_auth';
+export { AUTH_COOKIE_NAME };
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Protected routes requiring authentication
-  const protectedRoutes = ['/dashboard', '/transactions', '/send'];
+  // 1. Public routes that are always accessible
+  const publicRoutes = ['/', '/login', '/api/auth/login'];
+  if (publicRoutes.includes(pathname)) {
+    // If visiting /login while already authenticated, redirect to /dashboard
+    if (pathname === '/login') {
+      const authCookie = request.cookies.get(AUTH_COOKIE_NAME);
+      const session = await unsealAuthToken(authCookie?.value);
+      if (session) {
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+    }
+    return NextResponse.next();
+  }
 
-  const isProtectedRoute = protectedRoutes.some(
+  // 2. Protected API routes (/api/*): return JSON 401 if unauthenticated
+  if (pathname.startsWith('/api/')) {
+    const authCookie = request.cookies.get(AUTH_COOKIE_NAME);
+    const session = await unsealAuthToken(authCookie?.value);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized', code: 'UNAUTHORIZED' },
+        { status: 401 }
+      );
+    }
+    return NextResponse.next();
+  }
+
+  // 3. Protected Page routes (/dashboard, /transactions, /send): redirect to /login
+  const protectedPages = ['/dashboard', '/transactions', '/send'];
+  const isProtectedPage = protectedPages.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 
-  if (isProtectedRoute) {
+  if (isProtectedPage) {
     const authCookie = request.cookies.get(AUTH_COOKIE_NAME);
-    const isAuthenticated = Boolean(authCookie?.value);
+    const session = await unsealAuthToken(authCookie?.value);
 
-    if (!isAuthenticated) {
+    if (!session) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirectTo', pathname);
       return NextResponse.redirect(loginUrl);
     }
   }
 
-  // If visiting /login while already logged in, redirect to /dashboard
-  if (pathname === '/login') {
-    const authCookie = request.cookies.get(AUTH_COOKIE_NAME);
-    if (authCookie?.value) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-  }
-
   return NextResponse.next();
 }
 
-// Fallback export for middleware compatibility
 export const middleware = proxy;
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/transactions/:path*', '/send/:path*', '/login'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 };

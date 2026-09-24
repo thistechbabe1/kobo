@@ -2,7 +2,6 @@ import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { SlimDisclaimer } from '@/components/layout/SlimDisclaimer';
-import { DemoTipsDrawer } from '@/components/layout/DemoTipsDrawer';
 
 export default function DashboardShellLayout({
   children,
@@ -30,9 +29,6 @@ export default function DashboardShellLayout({
 
       {/* Mobile Bottom Navigation (390px) */}
       <BottomNav />
-
-      {/* Interactive Demo Tips & Test Triggers Drawer */}
-      <DemoTipsDrawer />
     </div>
   );
 }

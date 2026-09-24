@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ArrowRightLeft, SendHorizontal, CreditCard, Settings, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, ArrowRightLeft, SendHorizontal } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -14,7 +14,10 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside aria-label="Main Navigation Sidebar" className="hidden lg:flex flex-col w-64 bg-[var(--bg-surface)] border-r border-[var(--border-color)] p-4 shrink-0 min-h-[calc(100vh-4.25rem)] justify-between">
+    <aside 
+      aria-label="Main Navigation Sidebar" 
+      className="hidden lg:flex flex-col w-64 bg-[var(--bg-surface)] border-r border-[var(--border-color)] p-4 shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto justify-between"
+    >
       <div className="space-y-6">
         <div>
           <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-2">
@@ -43,36 +46,6 @@ export function Sidebar() {
             })}
           </nav>
         </div>
-
-        <div>
-          <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-2">
-            Wallet Features
-          </p>
-          <nav className="space-y-1">
-            <span className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs text-[var(--text-muted)] opacity-60 cursor-not-allowed">
-              <CreditCard className="w-4 h-4" />
-              <span>Cards (Coming Soon)</span>
-            </span>
-            <span className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs text-[var(--text-muted)] opacity-60 cursor-not-allowed">
-              <Settings className="w-4 h-4" />
-              <span>Settings</span>
-            </span>
-          </nav>
-        </div>
-      </div>
-
-      {/* Sidebar Footer Card */}
-      <div className="p-3.5 rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-color)]">
-        <div className="flex items-center gap-2 mb-1.5 text-xs font-semibold text-[var(--text-primary)]">
-          <HelpCircle className="w-4 h-4 text-[var(--accent-terracotta)]" />
-          <span>Need Help?</span>
-        </div>
-        <p className="text-[11px] text-[var(--text-muted)] leading-relaxed mb-2">
-          Kobo is a portfolio project designed for Nigerian financial tech.
-        </p>
-        <span className="inline-block px-2 py-0.5 rounded bg-emerald-950/10 dark:bg-emerald-100/10 text-[10px] font-bold text-[var(--brand-primary)]">
-          v1.0.0 Stable
-        </span>
       </div>
     </aside>
   );

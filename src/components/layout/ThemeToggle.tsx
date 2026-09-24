@@ -10,7 +10,7 @@ export function ThemeToggle() {
     // Check initial dark mode from class or system preference
     const isDarkMode = document.documentElement.classList.contains('dark') ||
       (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    setIsDark(isDarkMode);
+    requestAnimationFrame(() => setIsDark(isDarkMode));
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
