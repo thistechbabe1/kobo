@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   sealSessionState,
   unsealSessionState,
@@ -76,7 +76,7 @@ describe('jose Encrypted Cookie State (lib/session)', () => {
   });
 
   it('should enforce MAX_USER_TX_CAP (10 items) and roll off oldest transaction when 11th is added', () => {
-    let state: CompactSessionPayload = {
+    const state: CompactSessionPayload = {
       bal: 20000000,
       pin: 0,
       loc: null,

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { sealAuthToken, unsealAuthToken, AUTH_COOKIE_NAME } from '../../src/lib/session';
+import { sealAuthToken, unsealAuthToken } from '../../src/lib/session';
 
 const TEST_SECRET = 'dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWtleS1mb3ItZGV2ZWxvcG1lbnQtb25seTMyYnl0ZXM=';
 
