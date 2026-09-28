@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Filter, RotateCcw, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Filter, RotateCcw, Search } from 'lucide-react';
 import { CompactUserTx } from '@/lib/session';
 import { filterTransactions, getTransactionStatus, parseTransactionParams, TransactionFilterState, VALID_CATEGORIES, VALID_SORTS, VALID_STATUSES, VALID_TYPES } from '@/lib/transactions';
 
@@ -300,15 +300,16 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
                       </div>
 
                       <span
-                        className={`inline-flex rounded-full border px-2 py-0.5 text-[9px] font-semibold ${
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${
                           status === 'Completed'
                             ? 'border-emerald-600/30 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
                             : status === 'Pending'
-                              ? 'border-amber-600/30 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
+                              ? 'border-sky-600/30 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300'
                               : 'border-red-600/30 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300'
                         }`}
                       >
-                        {status}
+                        {status === 'Pending' && <Clock className="w-2.5 h-2.5 shrink-0" />}
+                        <span>{status}</span>
                       </span>
                     </div>
                   </div>
@@ -356,15 +357,16 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
                         </td>
                         <td className="px-4 py-3">
                           <span
-                            className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-semibold ${
+                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold ${
                               status === 'Completed'
                                 ? 'border-emerald-600/30 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
                                 : status === 'Pending'
-                                  ? 'border-amber-600/30 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
+                                  ? 'border-sky-600/30 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300'
                                   : 'border-red-600/30 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300'
                             }`}
                           >
-                            {status}
+                            {status === 'Pending' && <Clock className="w-2.5 h-2.5 shrink-0" />}
+                            <span>{status}</span>
                           </span>
                         </td>
                         <td className="px-4 py-3 text-[var(--text-muted)]">{dateLabel}</td>
