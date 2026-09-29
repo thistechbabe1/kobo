@@ -97,7 +97,7 @@ export function DemoTipsDrawer() {
         onClick={() => setIsOpen(true)}
         type="button"
         aria-label="Open Demo Guide and Test Triggers"
-        className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 bg-[var(--brand-primary)] text-white dark:text-[#0A1411] px-3.5 py-2.5 rounded-full shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:ring-offset-2 flex items-center gap-2 text-xs font-bold cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97]"
+        className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] right-4 sm:bottom-6 sm:right-6 z-40 bg-[var(--brand-primary)] text-white dark:text-[#0A1411] px-3.5 py-2.5 rounded-full shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:ring-offset-2 flex items-center gap-2 text-xs font-bold cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97]"
       >
         <Zap className="w-4 h-4 text-amber-300 dark:text-amber-900 fill-current animate-pulse" />
         <span>Demo Guide &amp; Triggers</span>

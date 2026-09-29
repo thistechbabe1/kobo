@@ -23,7 +23,7 @@ export default function DashboardShellLayout({
         <Sidebar />
 
         {/* Main Content Area */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-28 lg:pb-12 overflow-y-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] lg:pb-12 overflow-y-auto">
           {children}
         </main>
       </div>

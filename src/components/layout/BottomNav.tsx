@@ -14,7 +14,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Mobile Navigation Bar" className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-[var(--bg-surface)] border-t border-[var(--border-color)] px-4 py-2 transition-colors duration-200 shadow-lg">
+    <nav aria-label="Mobile Navigation Bar" className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-[var(--bg-surface)] border-t border-[var(--border-color)] px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] transition-colors duration-200 shadow-lg">
       <div className="flex items-center justify-around max-w-md mx-auto">
         {MOBILE_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
