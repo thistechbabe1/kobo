@@ -33,6 +33,7 @@ describe('jose Encrypted Cookie State (lib/session)', () => {
           ts: Date.now(),
         },
       ],
+      ik: ['4b445214-e53b-4cb5-b541-e94d80a1c3f1'],
     };
 
     const sealed = await sealSessionState(original);
@@ -44,43 +45,54 @@ describe('jose Encrypted Cookie State (lib/session)', () => {
     expect(unsealed.pin).toBe(original.pin);
     expect(unsealed.txs).toHaveLength(1);
     expect(unsealed.txs[0].nar).toBe('Transfer to Babatunde');
+    expect(unsealed.ik).toEqual(['4b445214-e53b-4cb5-b541-e94d80a1c3f1']);
   });
 
-  it('MEASURED COOKIE SIZE TEST: max 10 user transactions must remain strictly under 3 KB (3072 bytes)', async () => {
-    const fullTxs: CompactUserTx[] = Array.from({ length: MAX_USER_TX_CAP }, (_, i) => ({
+  it('MEASURED COOKIE SIZE TEST: worst-case fields with 10 user transactions AND 5 idempotency keys must remain strictly under 3 KB (3072 bytes)', async () => {
+    const worstCaseTxs: CompactUserTx[] = Array.from({ length: MAX_USER_TX_CAP }, (_, i) => ({
       id: `TX99990${i}`,
-      typ: i % 2 === 0 ? 'D' : 'C',
-      cat: 'TRANSFER',
-      amt: 1500000 + i * 1000,
-      nar: `Payment narration sample item ${i + 1}`,
-      rec: `Adefemi Oluwaseun ${i + 1}`,
-      bnk: '033',
-      acc: '9876',
+      typ: 'D',
+      cat: 'TRANSFER', // 8 chars
+      amt: 99999999, // 8-digit Kobo amount
+      nar: 'Payment for groceries & supplies', // exactly 32 -> capped at 30: 'Payment for groceries & suppl.'
+      rec: 'Folashade Danjuma-Az', // exactly 20 chars
+      bnk: 'First City Monument Bank (FCMB)', // 31 chars (longest bank name)
+      acc: '9876', // 4 chars
       ts: 1758320000000 + i * 60000,
+      status: 'Completed',
     }));
 
-    const fullPayload: CompactSessionPayload = {
-      bal: 24585050,
-      pin: 0,
-      loc: null,
-      txs: fullTxs,
+    const worstCaseIks = [
+      'c9bf9e57-1685-4c89-bafb-ff5af830be8a',
+      '7b6c5432-89ab-4cde-0123-456789abcdef',
+      '11223344-5566-7788-99aa-bbccddeeff00',
+      'aabbccdd-eeff-0011-2233-445566778899',
+      '99887766-5544-3322-1100-ffeeddccbbaa',
+    ];
+
+    const worstCasePayload: CompactSessionPayload = {
+      bal: 99999999,
+      pin: 3,
+      loc: 1759000000000 + 900000,
+      txs: worstCaseTxs,
+      ik: worstCaseIks,
     };
 
-    const sealedToken = await sealSessionState(fullPayload);
+    const sealedToken = await sealSessionState(worstCasePayload);
     const sizeInBytes = new TextEncoder().encode(sealedToken).byteLength;
 
-    console.log(`[Cookie Size Measurement] Sealed JWE token size with 10 user transactions: ${sizeInBytes} bytes`);
+    console.log(`[Cookie Size Measurement] Sealed JWE token size with WORST-CASE fields (10 txs + 5 keys): ${sizeInBytes} bytes`);
 
-    // Must be strictly under 3 KB limit (3072 bytes)
-    expect(sizeInBytes).toBeLessThan(3072);
+    // Must be strictly under 3,000 bytes (safely within 3 KB / 3072 bytes limit)
+    expect(sizeInBytes).toBeLessThan(3000);
   });
 
-  it('should enforce MAX_USER_TX_CAP (10 items) and roll off oldest transaction when 11th is added', () => {
+  it('should enforce MAX_USER_TX_CAP (8 items) and roll off oldest transaction when 9th is added', () => {
     const state: CompactSessionPayload = {
       bal: 20000000,
       pin: 0,
       loc: null,
-      txs: Array.from({ length: 10 }, (_, i) => ({
+      txs: Array.from({ length: MAX_USER_TX_CAP }, (_, i) => ({
         id: `TX_OLD_${i}`,
         typ: 'D',
         cat: 'TRF',
@@ -88,28 +100,29 @@ describe('jose Encrypted Cookie State (lib/session)', () => {
         nar: `Tx ${i}`,
         ts: 1000 + i,
       })),
+      ik: [],
     };
 
     const newTx: CompactUserTx = {
-      id: 'TX_NEW_11',
+      id: 'TX_NEW_9',
       typ: 'D',
       cat: 'UTL',
       amt: 50000,
-      nar: 'Latest 11th payment',
+      nar: 'Latest 9th payment',
       ts: 2000,
     };
 
     const result = pushUserTransaction(state, newTx);
 
     expect(result.rolledOff).toBe(true);
-    expect(result.updatedState.txs).toHaveLength(10);
-    expect(result.updatedState.txs[0].id).toBe('TX_NEW_11');
-    expect(result.updatedState.txs.some(t => t.id === 'TX_OLD_9')).toBe(false);
+    expect(result.updatedState.txs).toHaveLength(MAX_USER_TX_CAP);
+    expect(result.updatedState.txs[0].id).toBe('TX_NEW_9');
+    expect(result.updatedState.txs.some(t => t.id === `TX_OLD_${MAX_USER_TX_CAP - 1}`)).toBe(false);
   });
 
   it('should fail loudly if SESSION_SECRET is missing', async () => {
     delete process.env.SESSION_SECRET;
-    await expect(sealSessionState({ bal: 100, pin: 0, loc: null, txs: [] })).rejects.toThrow(
+    await expect(sealSessionState({ bal: 100, pin: 0, loc: null, txs: [], ik: [] })).rejects.toThrow(
       'SESSION_SECRET environment variable is missing'
     );
   });

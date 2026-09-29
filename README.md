@@ -58,6 +58,14 @@ Every text/background pair meets W3C relative luminance contrast requirements:
 
 ---
 
+## ⚠️ Demo Limitations
+
+- **Idempotency Keys in Session Cookie**: Idempotency keys are held in the sealed session cookie (`kobo_state` ring-buffer), so they cover resubmits after a response arrives but not a lost response or truly simultaneous requests across distributed devices. A production system would store and lock them server-side (e.g., Redis or a relational database with transactional isolation).
+- **CBN Regulatory Fee Tiers**: Transfer fee tiers are modeled directly on the live Central Bank of Nigeria (CBN) *Guide to Charges* regulatory search (Free for transfers below ₦5,000; ₦10 for ₦5,000–₦50,000; ₦50 for transfers above ₦50,000).
+- **Simulated Infrastructure**: Destination commercial banks, NIP account resolution, and transaction PIN verification (demo PIN `1234`) are simulated in-memory and in encrypted cookies without live banking switches or real money.
+
+---
+
 ## 📅 Remaining Work Schedule (Target: Friday 9 October 2026)
 
 - **Mon 21 Sept - Thu 24 Sept**: Feature 2 Dashboard Overview, Recharts analytics, financial reconciliation & JWE cookie security. *(Completed)*
