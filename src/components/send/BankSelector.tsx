@@ -45,6 +45,16 @@ export function BankSelector({
     }
   }, [isOpen]);
 
+  // Lock body scroll while dropdown is open to prevent double scrollbars
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
+
   const handleClose = () => {
     setIsOpen(false);
     setSearchQuery('');
@@ -133,6 +143,15 @@ export function BankSelector({
         />
       </button>
 
+      {/* Backdrop overlay to prevent scroll chaining and enable easy dismissal */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/10 dark:bg-black/30 backdrop-blur-[0.5px]"
+          onClick={handleClose}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Custom Dropdown Menu with Search */}
       {isOpen && (
         <div
@@ -157,8 +176,8 @@ export function BankSelector({
             </div>
           </div>
 
-          {/* Bank Options List */}
-          <div className="max-h-60 overflow-y-auto py-1 divide-y divide-[var(--border-color)]/30">
+          {/* Bank Options List with Contained Scroll */}
+          <div className="max-h-56 overflow-y-auto overscroll-contain py-1 pr-1 [scrollbar-width:thin] [scrollbar-color:var(--border-color)_transparent] divide-y divide-[var(--border-color)]/30">
             {filteredBanks.length === 0 ? (
               <div className="py-4 px-3 text-center text-xs text-[var(--text-muted)]">
                 No Nigerian bank found matching &quot;{searchQuery}&quot;

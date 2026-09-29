@@ -493,4 +493,134 @@ describe('SendMoneyFlow Component (Feature 4)', () => {
     expect(backToDashboard).toBeInTheDocument();
     expect(backToDashboard).toHaveAttribute('href', '/dashboard');
   });
+
+  it('PIN attempt counter behavior: fresh entry has 3 attempts with no 0-attempts warning, invalid attempts decrement, lockout blocks keypad', async () => {
+    let callCount = 0;
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (String(url).includes('resolve-account')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              success: true,
+              accountNumber: '0123456789',
+              accountName: 'Chioma Adebayo',
+            }),
+        });
+      }
+      if (String(url).includes('transfer')) {
+        callCount++;
+        if (callCount === 1) {
+          // 1st failed attempt
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: () =>
+              Promise.resolve({
+                error: 'Incorrect PIN. 2 attempts remaining.',
+                attemptsRemaining: 2,
+              }),
+          });
+        }
+        if (callCount === 2) {
+          // 2nd failed attempt
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: () =>
+              Promise.resolve({
+                error: 'Incorrect PIN. 1 attempt remaining.',
+                attemptsRemaining: 1,
+              }),
+          });
+        }
+        // 3rd failed attempt -> Lockout
+        return Promise.resolve({
+          ok: false,
+          status: 423,
+          json: () =>
+            Promise.resolve({
+              error: 'Account locked for 15 minutes due to 3 failed PIN attempts.',
+              lockUntil: Date.now() + 15 * 60 * 1000,
+            }),
+        });
+      }
+      return Promise.reject(new Error('Unknown URL'));
+    });
+
+    render(<SendMoneyFlow initialState={mockBaseState} />);
+
+    // Navigate to Step 4
+    fireEvent.change(screen.getByLabelText(/10-Digit NUBAN Account Number/i), {
+      target: { value: '0123456789' },
+    });
+    await waitFor(() => screen.getByText('Chioma Adebayo'));
+    fireEvent.click(screen.getByRole('button', { name: /Continue to Amount/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Review Details/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Authorize with PIN/i }));
+
+    // Fresh Step 4: absolutely NO "0 attempts remaining" warning is shown
+    expect(screen.queryByText(/0 attempts remaining/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/attempts remaining before 15-minute lockout/i)).not.toBeInTheDocument();
+
+    // 1st incorrect PIN submission
+    fireEvent.click(screen.getByRole('button', { name: '9' }));
+    fireEvent.click(screen.getByRole('button', { name: '9' }));
+    fireEvent.click(screen.getByRole('button', { name: '9' }));
+    fireEvent.click(screen.getByRole('button', { name: '9' }));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('confirm-transfer-btn'));
+    });
+
+    // Expect warning: "2 attempts remaining before 15-minute lockout"
+    await waitFor(() => {
+      expect(screen.getByText(/2 attempts remaining before 15-minute lockout/i)).toBeInTheDocument();
+    });
+
+    // 2nd incorrect PIN submission
+    fireEvent.click(screen.getByRole('button', { name: '8' }));
+    fireEvent.click(screen.getByRole('button', { name: '8' }));
+    fireEvent.click(screen.getByRole('button', { name: '8' }));
+    fireEvent.click(screen.getByRole('button', { name: '8' }));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('confirm-transfer-btn'));
+    });
+
+    // Expect warning: "1 attempt remaining before 15-minute lockout"
+    await waitFor(() => {
+      expect(screen.getByText(/1 attempt remaining before 15-minute lockout/i)).toBeInTheDocument();
+    });
+
+    // 3rd incorrect PIN submission
+    fireEvent.click(screen.getByRole('button', { name: '7' }));
+    fireEvent.click(screen.getByRole('button', { name: '7' }));
+    fireEvent.click(screen.getByRole('button', { name: '7' }));
+    fireEvent.click(screen.getByRole('button', { name: '7' }));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('confirm-transfer-btn'));
+    });
+
+    // Expect lockout activated, banner displayed, keypad removed, and NEVER "0 attempts remaining"
+    await waitFor(() => {
+      expect(screen.getByTestId('lockout-banner')).toBeInTheDocument();
+      expect(screen.queryByText(/0 attempts remaining/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: '1' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('BankSelector locks document.body scroll when open and restores it when closed', () => {
+    render(<SendMoneyFlow initialState={mockBaseState} />);
+
+    expect(document.body.style.overflow).toBe('');
+
+    const combobox = screen.getByRole('combobox', { name: /Destination Bank/i });
+    fireEvent.click(combobox);
+
+    // Dropdown is open -> body scroll is locked
+    expect(document.body.style.overflow).toBe('hidden');
+
+    // Close dropdown
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(document.body.style.overflow).toBe('');
+  });
 });

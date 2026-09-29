@@ -76,10 +76,16 @@ export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
 
   // Live balance and lockout state
   const [walletBalanceKobo, setWalletBalanceKobo] = useState<number>(initialState.bal);
-  const [lockUntilMs, setLockUntilMs] = useState<number | null>(initialState.loc);
-  const [attemptsRemaining, setAttemptsRemaining] = useState<number>(
-    initialState.pin >= 3 ? 0 : 3 - initialState.pin
-  );
+  const [lockUntilMs, setLockUntilMs] = useState<number | null>(() => {
+    if (initialState.loc === null) return null;
+    return Date.now() >= initialState.loc ? null : initialState.loc;
+  });
+  const [attemptsRemaining, setAttemptsRemaining] = useState<number>(() => {
+    if (initialState.loc !== null && Date.now() >= initialState.loc) {
+      return 3;
+    }
+    return initialState.pin >= 3 ? 0 : 3 - initialState.pin;
+  });
   const [nowEpoch, setNowEpoch] = useState<number>(() => Date.now());
 
   // Step 1: Recipient & Bank
@@ -784,7 +790,7 @@ export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
             <p className="text-xs text-[var(--text-muted)]">
               Enter your transaction PIN to authorize sending {formatNairaFromKobo(transferAmountKobo)}.
             </p>
-            {attemptsRemaining < 3 && !isLockedOut && (
+            {attemptsRemaining > 0 && attemptsRemaining < 3 && !isLockedOut && (
               <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
                 {attemptsRemaining} attempt{attemptsRemaining === 1 ? '' : 's'} remaining before 15-minute lockout
               </p>
