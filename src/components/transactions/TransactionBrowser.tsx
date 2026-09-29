@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Clock, Filter, RotateCcw, Search } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Clock, Filter, RotateCcw, Search } from 'lucide-react';
 import { CompactUserTx } from '@/lib/session';
 import { filterTransactions, getTransactionStatus, parseTransactionParams, TransactionFilterState, VALID_CATEGORIES, VALID_SORTS, VALID_STATUSES, VALID_TYPES } from '@/lib/transactions';
 
@@ -126,22 +126,25 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
 
           <div className="w-full md:max-w-[220px]">
             <label htmlFor="sort-select" className="sr-only">Sort transactions</label>
-            <select
-              id="sort-select"
-              value={filters.sort}
-              onChange={(event) => updateFilters({ sort: event.target.value as TransactionFilterState['sort'] }, false)}
-              aria-label="Sort transactions"
-              className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2.5 text-xs font-medium text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
-            >
-              {VALID_SORTS.map((value) => (
-                <option key={value} value={value}>
-                  {value === 'date_desc' && 'Newest first'}
-                  {value === 'date_asc' && 'Oldest first'}
-                  {value === 'amount_desc' && 'Highest amount'}
-                  {value === 'amount_asc' && 'Lowest amount'}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                id="sort-select"
+                value={filters.sort}
+                onChange={(event) => updateFilters({ sort: event.target.value as TransactionFilterState['sort'] }, false)}
+                aria-label="Sort transactions"
+                className="w-full appearance-none rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2.5 pr-8 text-xs font-medium text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] cursor-pointer hover:border-[var(--brand-primary)] transition-colors"
+              >
+                {VALID_SORTS.map((value) => (
+                  <option key={value} value={value}>
+                    {value === 'date_desc' && 'Newest first'}
+                    {value === 'date_asc' && 'Oldest first'}
+                    {value === 'amount_desc' && 'Highest amount'}
+                    {value === 'amount_asc' && 'Lowest amount'}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" aria-hidden="true" />
+            </div>
           </div>
         </div>
 
@@ -153,53 +156,62 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
 
           <div>
             <label htmlFor="category-select" className="sr-only">Filter by category</label>
-            <select
-              id="category-select"
-              aria-label="Filter by category"
-              value={filters.category}
-              onChange={(event) => updateFilters({ category: event.target.value as TransactionFilterState['category'] }, true)}
-              className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
-            >
-              {VALID_CATEGORIES.map((value) => (
-                <option key={value} value={value}>
-                  {value === 'ALL' ? 'All categories' : value}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                id="category-select"
+                aria-label="Filter by category"
+                value={filters.category}
+                onChange={(event) => updateFilters({ category: event.target.value as TransactionFilterState['category'] }, true)}
+                className="appearance-none rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-2.5 py-1.5 pr-7 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] cursor-pointer hover:border-[var(--brand-primary)] transition-colors"
+              >
+                {VALID_CATEGORIES.map((value) => (
+                  <option key={value} value={value}>
+                    {value === 'ALL' ? 'All categories' : value}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-muted)]" aria-hidden="true" />
+            </div>
           </div>
 
           <div>
             <label htmlFor="type-select" className="sr-only">Filter by type</label>
-            <select
-              id="type-select"
-              aria-label="Filter by type"
-              value={filters.type}
-              onChange={(event) => updateFilters({ type: event.target.value as TransactionFilterState['type'] }, true)}
-              className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
-            >
-              {VALID_TYPES.map((value) => (
-                <option key={value} value={value}>
-                  {value === 'ALL' ? 'All types' : value === 'C' ? 'Credits' : 'Debits'}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                id="type-select"
+                aria-label="Filter by type"
+                value={filters.type}
+                onChange={(event) => updateFilters({ type: event.target.value as TransactionFilterState['type'] }, true)}
+                className="appearance-none rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-2.5 py-1.5 pr-7 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] cursor-pointer hover:border-[var(--brand-primary)] transition-colors"
+              >
+                {VALID_TYPES.map((value) => (
+                  <option key={value} value={value}>
+                    {value === 'ALL' ? 'All types' : value === 'C' ? 'Credits' : 'Debits'}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-muted)]" aria-hidden="true" />
+            </div>
           </div>
 
           <div>
             <label htmlFor="status-select" className="sr-only">Transaction status</label>
-            <select
-              id="status-select"
-              aria-label="Transaction status"
-              value={filters.status}
-              onChange={(event) => updateFilters({ status: event.target.value as TransactionFilterState['status'] }, true)}
-              className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
-            >
-              {VALID_STATUSES.map((value) => (
-                <option key={value} value={value}>
-                  {value === 'ALL' ? 'All status' : value}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                id="status-select"
+                aria-label="Transaction status"
+                value={filters.status}
+                onChange={(event) => updateFilters({ status: event.target.value as TransactionFilterState['status'] }, true)}
+                className="appearance-none rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-2.5 py-1.5 pr-7 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] cursor-pointer hover:border-[var(--brand-primary)] transition-colors"
+              >
+                {VALID_STATUSES.map((value) => (
+                  <option key={value} value={value}>
+                    {value === 'ALL' ? 'All status' : value}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-muted)]" aria-hidden="true" />
+            </div>
           </div>
 
           <div className="flex items-center gap-2">

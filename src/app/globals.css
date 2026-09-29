@@ -77,3 +77,9 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Native <select> option theming (webkit/gecko) */
+select option {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}

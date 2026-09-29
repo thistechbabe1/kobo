@@ -97,10 +97,11 @@ export function DemoTipsDrawer() {
         onClick={() => setIsOpen(true)}
         type="button"
         aria-label="Open Demo Guide and Test Triggers"
-        className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] right-4 sm:bottom-6 sm:right-6 z-40 bg-[var(--brand-primary)] text-white dark:text-[#0A1411] px-3.5 py-2.5 rounded-full shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:ring-offset-2 flex items-center gap-2 text-xs font-bold cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97]"
+        className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] right-4 sm:bottom-6 sm:right-6 z-40 bg-[var(--brand-primary)] text-white dark:text-[#0A1411] px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-full shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:ring-offset-2 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-bold cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97]"
       >
-        <Zap className="w-4 h-4 text-amber-300 dark:text-amber-900 fill-current animate-pulse" />
-        <span>Demo Guide &amp; Triggers</span>
+        <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 dark:text-amber-900 fill-current animate-pulse shrink-0" />
+        <span className="hidden sm:inline">Demo Guide &amp; Triggers</span>
+        <span className="sm:hidden">Demo Guide</span>
       </button>
 
       {/* Drawer Overlay & Sliding Panel */}
