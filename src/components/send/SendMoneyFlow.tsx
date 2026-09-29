@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { NIGERIAN_BANKS } from '@/lib/banks';
 import { calculateTransferFeeKobo, CompactSessionPayload } from '@/lib/session';
+import { BankSelector } from './BankSelector';
 
 export interface SendMoneyFlowProps {
   initialState: CompactSessionPayload;
@@ -346,6 +347,17 @@ export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
 
   return (
     <div className="w-full max-w-xl mx-auto space-y-6">
+      {/* Back to Dashboard Navigation Link */}
+      <div className="flex items-center justify-between">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--brand-primary)] transition-colors cursor-pointer group"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+          <span>Back to Dashboard</span>
+        </Link>
+      </div>
+
       {/* Header with Balance */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-4 sm:p-5 shadow-sm">
         <div>
@@ -443,24 +455,16 @@ export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
               <label htmlFor={bankSelectId} className="text-xs font-semibold text-[var(--text-primary)]">
                 Destination Bank
               </label>
-              <select
+              <BankSelector
                 id={bankSelectId}
-                aria-label="Destination Bank"
-                value={selectedBankCode}
-                onChange={(e) => {
-                  setSelectedBankCode(e.target.value);
+                selectedBankCode={selectedBankCode}
+                onSelectBank={(bank) => {
+                  setSelectedBankCode(bank.code);
                   setResolvedRecipientName('');
                   setResolutionError('');
                 }}
                 disabled={isLockedOut}
-                className="w-full h-11 px-3.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] disabled:opacity-50"
-              >
-                {NIGERIAN_BANKS.map((bank) => (
-                  <option key={bank.code} value={bank.code}>
-                    {bank.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             {/* Account Number Input */}
@@ -664,11 +668,11 @@ export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3 pt-2">
             <button
               type="button"
               onClick={() => setCurrentStep(1)}
-              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="w-28 sm:w-32 h-11 shrink-0 flex items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
@@ -677,7 +681,7 @@ export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
               type="button"
               onClick={handleProceedToReview}
               disabled={!isBalanceSufficient || isLockedOut}
-              className="flex-2 w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               <span>Review Details</span>
               <ArrowRight className="w-4 h-4" />
@@ -742,11 +746,11 @@ export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3 pt-2">
             <button
               type="button"
               onClick={() => handleBackToEdit(2)}
-              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="w-28 sm:w-32 h-11 shrink-0 flex items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Edit</span>
@@ -755,7 +759,7 @@ export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
               type="button"
               onClick={handleProceedToPin}
               disabled={isLockedOut}
-              className="flex-2 w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
+              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 cursor-pointer"
             >
               <KeyRound className="w-4 h-4" />
               <span>Authorize with PIN</span>
@@ -875,12 +879,12 @@ export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex items-center gap-3 pt-2">
             <button
               type="button"
               disabled={isSubmitting}
               onClick={() => handleBackToEdit(3)}
-              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
+              className="w-28 sm:w-32 h-11 shrink-0 flex items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 cursor-pointer"
             >
               <span>Cancel</span>
             </button>
@@ -889,7 +893,7 @@ export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
               data-testid="confirm-transfer-btn"
               disabled={pinDigits.length !== 4 || isSubmitting || isLockedOut}
               onClick={() => executeTransfer(idempotencyKey)}
-              className="flex-2 w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSubmitting ? (
                 <>

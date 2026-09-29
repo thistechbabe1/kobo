@@ -2,6 +2,7 @@ import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { SlimDisclaimer } from '@/components/layout/SlimDisclaimer';
+import { DemoTipsDrawer } from '@/components/layout/DemoTipsDrawer';
 
 export default function DashboardShellLayout({
   children,
@@ -22,13 +23,16 @@ export default function DashboardShellLayout({
         <Sidebar />
 
         {/* Main Content Area */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 lg:pb-12 overflow-y-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-28 lg:pb-12 overflow-y-auto">
           {children}
         </main>
       </div>
 
       {/* Mobile Bottom Navigation (390px) */}
       <BottomNav />
+
+      {/* Persistent Demo Guide & Triggers Drawer */}
+      <DemoTipsDrawer />
     </div>
   );
 }

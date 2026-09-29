@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Wallet, ShieldAlert, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { DemoTipsDrawer } from '@/components/layout/DemoTipsDrawer';
 import { AUTH_COOKIE_NAME } from '@/proxy';
 
 function LoginForm() {
@@ -175,6 +176,9 @@ export default function LoginPage() {
           <span>This app is a demo project with no real money or banking data.</span>
         </p>
       </div>
+
+      {/* Floating Demo Tips and Triggers Drawer */}
+      <DemoTipsDrawer />
     </div>
   );
 }

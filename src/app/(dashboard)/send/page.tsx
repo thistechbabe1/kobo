@@ -13,7 +13,7 @@ export default async function SendPage() {
   const session = await unsealSessionState(sessionCookie?.value);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-4xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold font-heading text-[var(--text-primary)]">Send Money</h1>
         <p className="text-xs text-[var(--text-muted)] mt-1">
