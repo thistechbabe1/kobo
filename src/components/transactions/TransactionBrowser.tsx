@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { ChevronDown, ChevronLeft, ChevronRight, Clock, Filter, RotateCcw, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Filter, RotateCcw, Search } from 'lucide-react';
 import { CompactUserTx } from '@/lib/session';
 import { filterTransactions, getTransactionStatus, parseTransactionParams, TransactionFilterState, VALID_CATEGORIES, VALID_SORTS, VALID_STATUSES, VALID_TYPES } from '@/lib/transactions';
+import { CustomSelect } from '@/components/ui/CustomSelect';
+import { PrimaryButton, GhostButton, SurfaceCard } from '@/components/ui';
 
 interface TransactionBrowserProps {
   transactions: CompactUserTx[];
@@ -111,7 +113,7 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
             <label htmlFor="transaction-search" className="sr-only">
               Search transactions
             </label>
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--brand-primary)]" />
             <input
               ref={inputRef}
               id="transaction-search"
@@ -125,94 +127,71 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
           </div>
 
           <div className="w-full md:max-w-[220px]">
-            <label htmlFor="sort-select" className="sr-only">Sort transactions</label>
-            <div className="relative">
-              <select
-                id="sort-select"
-                value={filters.sort}
-                onChange={(event) => updateFilters({ sort: event.target.value as TransactionFilterState['sort'] }, false)}
-                aria-label="Sort transactions"
-                className="w-full appearance-none rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2.5 pr-8 text-xs font-medium text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] cursor-pointer hover:border-[var(--brand-primary)] transition-colors"
-              >
-                {VALID_SORTS.map((value) => (
-                  <option key={value} value={value}>
-                    {value === 'date_desc' && 'Newest first'}
-                    {value === 'date_asc' && 'Oldest first'}
-                    {value === 'amount_desc' && 'Highest amount'}
-                    {value === 'amount_asc' && 'Lowest amount'}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" aria-hidden="true" />
-            </div>
+            <CustomSelect
+              id="sort-select"
+              label="Sort transactions"
+              value={filters.sort}
+              size="md"
+              onChange={(sort) => updateFilters({ sort }, false)}
+              options={VALID_SORTS.map((value) => ({
+                value,
+                label:
+                  value === 'date_desc'
+                    ? 'Newest first'
+                    : value === 'date_asc'
+                      ? 'Oldest first'
+                      : value === 'amount_desc'
+                        ? 'Highest amount'
+                        : 'Lowest amount',
+              }))}
+            />
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--border-color)] pt-3 text-xs">
+        <div className="mt-4 flex flex-wrap items-center gap-2.5 border-t border-[var(--border-color)] pt-3 text-xs">
           <div className="flex items-center gap-1.5 font-bold text-[var(--text-primary)]">
             <Filter className="h-3.5 w-3.5 text-[var(--brand-primary)]" />
             <span>Filters</span>
           </div>
 
-          <div>
-            <label htmlFor="category-select" className="sr-only">Filter by category</label>
-            <div className="relative">
-              <select
-                id="category-select"
-                aria-label="Filter by category"
-                value={filters.category}
-                onChange={(event) => updateFilters({ category: event.target.value as TransactionFilterState['category'] }, true)}
-                className="appearance-none rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-2.5 py-1.5 pr-7 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] cursor-pointer hover:border-[var(--brand-primary)] transition-colors"
-              >
-                {VALID_CATEGORIES.map((value) => (
-                  <option key={value} value={value}>
-                    {value === 'ALL' ? 'All categories' : value}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-muted)]" aria-hidden="true" />
-            </div>
-          </div>
+          <CustomSelect
+            id="category-select"
+            label="Filter by category"
+            value={filters.category}
+            size="sm"
+            className="min-w-[130px]"
+            onChange={(category) => updateFilters({ category }, true)}
+            options={VALID_CATEGORIES.map((value) => ({
+              value,
+              label: value === 'ALL' ? 'All categories' : value,
+            }))}
+          />
 
-          <div>
-            <label htmlFor="type-select" className="sr-only">Filter by type</label>
-            <div className="relative">
-              <select
-                id="type-select"
-                aria-label="Filter by type"
-                value={filters.type}
-                onChange={(event) => updateFilters({ type: event.target.value as TransactionFilterState['type'] }, true)}
-                className="appearance-none rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-2.5 py-1.5 pr-7 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] cursor-pointer hover:border-[var(--brand-primary)] transition-colors"
-              >
-                {VALID_TYPES.map((value) => (
-                  <option key={value} value={value}>
-                    {value === 'ALL' ? 'All types' : value === 'C' ? 'Credits' : 'Debits'}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-muted)]" aria-hidden="true" />
-            </div>
-          </div>
+          <CustomSelect
+            id="type-select"
+            label="Filter by type"
+            value={filters.type}
+            size="sm"
+            className="min-w-[105px]"
+            onChange={(type) => updateFilters({ type }, true)}
+            options={VALID_TYPES.map((value) => ({
+              value,
+              label: value === 'ALL' ? 'All types' : value === 'C' ? 'Credits' : 'Debits',
+            }))}
+          />
 
-          <div>
-            <label htmlFor="status-select" className="sr-only">Transaction status</label>
-            <div className="relative">
-              <select
-                id="status-select"
-                aria-label="Transaction status"
-                value={filters.status}
-                onChange={(event) => updateFilters({ status: event.target.value as TransactionFilterState['status'] }, true)}
-                className="appearance-none rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-2.5 py-1.5 pr-7 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] cursor-pointer hover:border-[var(--brand-primary)] transition-colors"
-              >
-                {VALID_STATUSES.map((value) => (
-                  <option key={value} value={value}>
-                    {value === 'ALL' ? 'All status' : value}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-muted)]" aria-hidden="true" />
-            </div>
-          </div>
+          <CustomSelect
+            id="status-select"
+            label="Transaction status"
+            value={filters.status}
+            size="sm"
+            className="min-w-[115px]"
+            onChange={(status) => updateFilters({ status }, true)}
+            options={VALID_STATUSES.map((value) => ({
+              value,
+              label: value === 'ALL' ? 'All status' : value,
+            }))}
+          />
 
           <div className="flex items-center gap-2">
             <label htmlFor="from-date" className="sr-only">From date</label>
@@ -253,7 +232,7 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
         {announcement}
       </div>
 
-      <div className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-surface)] p-4 sm:p-5 shadow-xs">
+      <SurfaceCard className="rounded-3xl p-4 sm:p-5 shadow-xs">
         <div className="mb-4 flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-bold text-[var(--text-primary)]">Transaction history</p>
@@ -265,14 +244,15 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
           <div className="rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--bg-primary)] p-8 text-center">
             <p className="text-sm font-semibold text-[var(--text-primary)]">No transactions match those filters</p>
             <p className="mt-2 text-xs text-[var(--text-muted)]">Try a different search or adjust the date range.</p>
-            <button
+            <PrimaryButton
               type="button"
+              size="sm"
               onClick={handleClearFilters}
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 py-2 text-xs font-semibold text-white dark:text-[#0A1411]"
+              className="mt-4 mx-auto"
             >
               <RotateCcw className="h-3.5 w-3.5" />
               Clear filters
-            </button>
+            </PrimaryButton>
           </div>
         ) : (
           <div className="space-y-4">
@@ -295,7 +275,7 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
                 return (
                   <div key={tx.id} className="p-3.5 space-y-1.5 bg-[var(--bg-surface)]">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="font-semibold text-xs text-[var(--text-primary)] leading-tight">
+                      <div className="font-semibold text-xs text-[var(--text-primary)] leading-tight min-w-0 truncate">
                         {tx.nar}
                       </div>
                       <span className={`font-mono text-xs font-bold shrink-0 ${isCredit ? 'text-[var(--brand-primary)]' : 'text-[var(--accent-deep-terracotta)]'}`}>
@@ -395,41 +375,43 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
             </div>
 
             <div data-testid="pagination-controls" className="flex items-center justify-between gap-3">
-              <button
+              <GhostButton
                 type="button"
+                size="sm"
                 onClick={() => {
                   const nextPage = Math.max(1, resultSet.page - 1);
                   updateFilters({ page: nextPage }, false);
                 }}
                 disabled={resultSet.page <= 1}
                 aria-label="Previous page"
-                className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-1 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
                 Previous page
-              </button>
+              </GhostButton>
 
               <div className="text-xs text-[var(--text-muted)]">
                 Page {resultSet.page} of {resultSet.totalPages}
               </div>
 
-              <button
+              <GhostButton
                 type="button"
+                size="sm"
                 onClick={() => {
                   const nextPage = Math.min(resultSet.totalPages, resultSet.page + 1);
                   updateFilters({ page: nextPage }, false);
                 }}
                 disabled={resultSet.page >= resultSet.totalPages}
                 aria-label="Next page"
-                className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-1 disabled:cursor-not-allowed"
               >
                 Next page
                 <ChevronRight className="h-3.5 w-3.5" />
-              </button>
+              </GhostButton>
             </div>
           </div>
         )}
-      </div>
+      </SurfaceCard>
     </div>
   );
 }

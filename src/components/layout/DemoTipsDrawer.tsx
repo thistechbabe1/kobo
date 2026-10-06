@@ -78,9 +78,24 @@ function TriggerItem({
   );
 }
 
-export function DemoTipsDrawer() {
-  const [isOpen, setIsOpen] = useState(false);
+export function DemoTipsDrawer({
+  forceOpen,
+  onClose,
+  hideLauncher = false,
+}: {
+  forceOpen?: boolean;
+  onClose?: () => void;
+  hideLauncher?: boolean;
+} = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
+
+  // Merge external control with internal toggle
+  const isOpen = forceOpen ?? internalOpen;
+  const handleClose = () => {
+    setInternalOpen(false);
+    onClose?.();
+  };
 
   const handleCopy = (text: string) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -92,17 +107,18 @@ export function DemoTipsDrawer() {
 
   return (
     <>
-      {/* Floating Demo Guide & Triggers Launcher */}
-      <button
-        onClick={() => setIsOpen(true)}
-        type="button"
-        aria-label="Open Demo Guide and Test Triggers"
-        className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] right-4 sm:bottom-6 sm:right-6 z-40 bg-[var(--brand-primary)] text-white dark:text-[#0A1411] px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-full shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:ring-offset-2 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-bold cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97]"
-      >
-        <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 dark:text-amber-900 fill-current animate-pulse shrink-0" />
-        <span className="hidden sm:inline">Demo Guide &amp; Triggers</span>
-        <span className="sm:hidden">Demo Guide</span>
-      </button>
+      {/* Floating launcher — shown on standalone pages (/ and /login) */}
+      {!hideLauncher && (
+        <button
+          onClick={() => setInternalOpen(true)}
+          type="button"
+          aria-label="Open Demo Guide and Test Triggers"
+          className="flex fixed bottom-6 left-4 sm:left-6 z-40 bg-[var(--brand-primary)] text-white dark:text-[#0A1411] px-3.5 py-2.5 rounded-full shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:ring-offset-2 items-center gap-2 text-xs font-bold cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97]"
+        >
+          <Zap className="w-4 h-4 text-amber-300 dark:text-amber-900 fill-current animate-pulse shrink-0" />
+          <span>Demo Guide &amp; Triggers</span>
+        </button>
+      )}
 
       {/* Drawer Overlay & Sliding Panel */}
       {isOpen && (
@@ -121,7 +137,7 @@ export function DemoTipsDrawer() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setIsOpen(false)}
+                  onClick={handleClose}
                   className="p-1.5 rounded-lg hover:bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
                   aria-label="Close Demo Guide"
                 >
@@ -279,7 +295,7 @@ export function DemoTipsDrawer() {
             <div className="pt-4 border-t border-[var(--border-color)] mt-4">
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
+                onClick={handleClose}
                 className="w-full py-2.5 rounded-xl bg-[var(--brand-primary)] text-white dark:text-[#0A1411] font-semibold text-xs hover:opacity-95 transition-opacity cursor-pointer"
               >
                 Close Demo Guide

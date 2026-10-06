@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { CompactUserTx } from '@/lib/session';
 import { ArrowUpRight, ArrowDownLeft, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
+import { SurfaceCard, StatusBadge } from '@/components/ui';
 
 interface RecentTransactionsListProps {
   transactions: CompactUserTx[];
@@ -26,7 +27,7 @@ export function RecentTransactionsList({ transactions }: RecentTransactionsListP
   };
 
   return (
-    <div className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-3xl p-5 sm:p-6 shadow-sm">
+    <SurfaceCard className="rounded-3xl p-5 sm:p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4 border-b border-[var(--border-color)] pb-3">
         <div>
           <h2 className="text-base font-bold font-heading text-[var(--text-primary)]">
@@ -73,7 +74,7 @@ export function RecentTransactionsList({ transactions }: RecentTransactionsListP
                 variants={itemVariants}
                 className="flex items-center justify-between p-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-color)] hover:border-[var(--brand-primary)] transition-colors"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   {/* Semantic Direction Icon + Background */}
                   <div
                     className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
@@ -89,14 +90,14 @@ export function RecentTransactionsList({ transactions }: RecentTransactionsListP
                     )}
                   </div>
 
-                  <div className="text-xs">
-                    <p className="font-semibold text-[var(--text-primary)] truncate max-w-[180px] sm:max-w-xs">
+                  <div className="text-xs min-w-0">
+                    <p className="font-semibold text-[var(--text-primary)] truncate">
                       {tx.nar}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[var(--text-muted)]">
-                      <span>{formattedDate}</span>
+                      <span className="shrink-0">{formattedDate}</span>
                       <span>•</span>
-                      <span className="font-mono text-[10px]">{tx.id}</span>
+                      <span className="font-mono text-[10px] truncate">{tx.id}</span>
                     </div>
                   </div>
                 </div>
@@ -112,21 +113,18 @@ export function RecentTransactionsList({ transactions }: RecentTransactionsListP
                   >
                     {isCredit ? `+₦${formattedAmount}` : `-₦${formattedAmount}`}
                   </p>
-                  <span
-                    className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider ${
-                      isCredit
-                        ? 'bg-emerald-950/10 dark:bg-emerald-100/10 text-[var(--brand-primary)] dark:text-[#14A877]'
-                        : 'bg-red-950/10 dark:bg-red-100/10 text-[var(--accent-deep-terracotta)] dark:text-[#FF6B4A]'
-                    }`}
+                  <StatusBadge
+                    variant={isCredit ? 'success' : 'error'}
+                    className="uppercase tracking-wider text-[9px] px-1.5 py-0.2 rounded"
                   >
                     {isCredit ? 'Credit' : 'Debit'}
-                  </span>
+                  </StatusBadge>
                 </div>
               </motion.li>
             );
           })}
         </motion.ul>
       )}
-    </div>
+    </SurfaceCard>
   );
 }

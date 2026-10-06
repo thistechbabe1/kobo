@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { ChartDataPoint } from './SpendingAnalyticsChartInner';
+import { SurfaceCard } from '@/components/ui';
 
 export function ChartSkeleton() {
   return (
@@ -33,7 +34,7 @@ interface SpendingAnalyticsChartProps {
 
 export function SpendingAnalyticsChart({ data }: SpendingAnalyticsChartProps) {
   return (
-    <div className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-3xl p-5 sm:p-6 shadow-sm">
+    <SurfaceCard className="rounded-3xl p-5 sm:p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4 border-b border-[var(--border-color)] pb-3">
         <div>
           <h2 className="text-base font-bold font-heading text-[var(--text-primary)]">
@@ -45,6 +46,6 @@ export function SpendingAnalyticsChart({ data }: SpendingAnalyticsChartProps) {
         </div>
       </div>
       <DynamicChart data={data} />
-    </div>
+    </SurfaceCard>
   );
 }

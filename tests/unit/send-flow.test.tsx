@@ -358,30 +358,50 @@ describe('SendMoneyFlow Component (Feature 4)', () => {
     });
   });
 
-  it('custom bank selector allows searching and selecting a different bank with accessibility', async () => {
+  it('custom bank selector allows searching, selecting, and closing via Escape or backdrop with focus and scroll lock management', async () => {
     render(<SendMoneyFlow initialState={mockBaseState} />);
 
     // Click bank selector combobox trigger
     const bankButton = screen.getByRole('combobox', { name: /Destination Bank/i });
     expect(bankButton).toBeInTheDocument();
     expect(bankButton).toHaveTextContent(/Guaranty Trust Bank/i);
+    expect(document.body.style.overflow).toBe('');
 
+    // 1. Open sheet/dropdown -> focus moves to search input inside sheet and body scroll is locked
     fireEvent.click(bankButton);
-
-    // Dropdown listbox and search input should now be open
     const searchInput = screen.getByPlaceholderText(/Search bank name or code/i);
     expect(searchInput).toBeInTheDocument();
+    expect(document.activeElement).toBe(searchInput);
+    expect(document.body.style.overflow).toBe('hidden');
 
-    // Filter banks by "kuda"
-    fireEvent.change(searchInput, { target: { value: 'kuda' } });
+    // 2. Press Escape -> closes sheet, returns focus to trigger, and releases body scroll
+    fireEvent.keyDown(searchInput, { key: 'Escape' });
+    expect(screen.queryByPlaceholderText(/Search bank name or code/i)).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(bankButton);
+    expect(document.body.style.overflow).toBe('');
+
+    // 3. Re-open and tap backdrop -> closes sheet, returns focus to trigger, and releases body scroll
+    fireEvent.click(bankButton);
+    expect(screen.getByPlaceholderText(/Search bank name or code/i)).toBeInTheDocument();
+    expect(document.body.style.overflow).toBe('hidden');
+    fireEvent.click(screen.getByTestId('bank-selector-backdrop'));
+    expect(screen.queryByPlaceholderText(/Search bank name or code/i)).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(bankButton);
+    expect(document.body.style.overflow).toBe('');
+
+    // 4. Re-open, filter banks by "kuda", and select Kuda Bank
+    fireEvent.click(bankButton);
+    const searchInputAgain = screen.getByPlaceholderText(/Search bank name or code/i);
+    fireEvent.change(searchInputAgain, { target: { value: 'kuda' } });
     expect(screen.getByRole('option', { name: /Kuda Microfinance Bank/i })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /Zenith Bank/i })).not.toBeInTheDocument();
 
-    // Select Kuda Bank
     fireEvent.click(screen.getByRole('option', { name: /Kuda Microfinance Bank/i }));
 
-    // Dropdown closes and trigger button reflects selected bank
+    // Dropdown closes, focus returns to trigger, body scroll is released, and trigger reflects selected bank
     expect(screen.queryByPlaceholderText(/Search bank name or code/i)).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(bankButton);
+    expect(document.body.style.overflow).toBe('');
     expect(bankButton).toHaveTextContent(/Kuda Microfinance Bank/i);
   });
 

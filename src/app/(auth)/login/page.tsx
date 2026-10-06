@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Wallet, ShieldAlert, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { DemoTipsDrawer } from '@/components/layout/DemoTipsDrawer';
+import { PrimaryButton, GhostButton, SurfaceCard } from '@/components/ui';
 import { AUTH_COOKIE_NAME } from '@/proxy';
 
 function LoginForm() {
@@ -63,7 +64,7 @@ function LoginForm() {
   };
 
   return (
-    <div className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-3xl p-6 sm:p-8 shadow-xl">
+    <SurfaceCard className="rounded-3xl p-6 sm:p-8 shadow-xl">
       <div className="text-center mb-6">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/10 dark:bg-emerald-100/10 text-xs font-semibold text-[var(--brand-primary)] mb-3">
           <CheckCircle2 className="w-3.5 h-3.5" /> Demo Environment
@@ -77,21 +78,18 @@ function LoginForm() {
       </div>
 
       {/* Quick One-Click Demo Button */}
-      <button
+      <PrimaryButton
         onClick={handleQuickDemoLogin}
-        disabled={isLoading}
+        isLoading={isLoading}
+        loadingLabel="Authenticating demo session..."
         type="button"
-        className="w-full py-3 px-4 mb-5 rounded-2xl bg-[var(--brand-primary)] text-white dark:text-[#0A1411] font-semibold text-xs hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:ring-offset-2 transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+        fullWidth
+        size="lg"
+        className="mb-5 text-xs"
       >
-        {isLoading ? (
-          <span>Authenticating demo session...</span>
-        ) : (
-          <>
-            <span>⚡ One-Click &quot;Try Demo Account&quot;</span>
-            <ArrowRight className="w-4 h-4" />
-          </>
-        )}
-      </button>
+        <span>⚡ One-Click &quot;Try Demo Account&quot;</span>
+        <ArrowRight className="w-4 h-4" />
+      </PrimaryButton>
 
       <div className="relative my-5 flex items-center justify-center">
         <div className="absolute inset-0 flex items-center">
@@ -129,20 +127,16 @@ function LoginForm() {
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full py-2.5 px-4 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] font-semibold hover:border-[var(--brand-primary)] transition-all cursor-pointer"
-        >
+        <GhostButton type="submit" disabled={isLoading} fullWidth>
           Sign In to Wallet
-        </button>
+        </GhostButton>
       </form>
 
       <div className="mt-6 p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] text-[11px] text-[var(--text-muted)] flex items-center gap-2">
         <Lock className="w-4 h-4 text-[var(--brand-primary)] shrink-0" />
         <span>Protected by bank-grade encryption &amp; secure HTTP-only session tokens.</span>
       </div>
-    </div>
+    </SurfaceCard>
   );
 }
 
