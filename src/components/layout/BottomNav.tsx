@@ -29,10 +29,16 @@ export function BottomNav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // Ignore network errors and still clear any client-accessible cookies
+    }
     document.cookie = `${AUTH_COOKIE_NAME}=; path=/; max-age=0; SameSite=Lax`;
     document.cookie = `kobo_state=; path=/; max-age=0; SameSite=Lax`;
     router.push('/login');
+    router.refresh();
   };
 
   useEffect(() => {
