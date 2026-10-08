@@ -4,12 +4,15 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     --bg-primary: #FDFBF7;
     --bg-surface: #FFFFFF;
     --text-primary: #1A2421;
     --text-muted: #4A5551;
     --brand-primary: #0D7855;
     --brand-primary-hover: #0A6044;
+    --brand-soft: rgba(13, 120, 85, 0.1);
+    --brand-ring: rgba(13, 120, 85, 0.18);
     --accent-terracotta: #E05638;
     --accent-deep-terracotta: #C2410C;
     --border-color: #E6E2D8;
@@ -17,12 +20,15 @@
   }
 
   .dark {
+    color-scheme: dark;
     --bg-primary: #0A1411;
     --bg-surface: #14241F;
     --text-primary: #F4F6F5;
     --text-muted: #94A8A0;
     --brand-primary: #14A877;
     --brand-primary-hover: #108A62;
+    --brand-soft: rgba(20, 168, 119, 0.14);
+    --brand-ring: rgba(20, 168, 119, 0.22);
     --accent-terracotta: #FF6B4A;
     --accent-deep-terracotta: #FF6B4A;
     --border-color: #203830;
@@ -44,27 +50,36 @@
   }
 }
 
-/* Site-wide Theme Scrollbar (Firefox + Webkit) */
+/* Site-wide & Dropdown Theme Scrollbar (Firefox + Webkit/Chromium) */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--border-color) transparent;
 }
 
-::-webkit-scrollbar {
+.themed-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) var(--bg-surface);
+}
+
+::-webkit-scrollbar,
+.themed-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
-::-webkit-scrollbar-track {
+::-webkit-scrollbar-track,
+.themed-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb,
+.themed-scrollbar::-webkit-scrollbar-thumb {
   background-color: var(--border-color);
   border-radius: 9999px;
 }
 
-::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:hover,
+.themed-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: var(--text-muted);
 }
 
@@ -82,4 +97,15 @@
 select option {
   background-color: var(--bg-primary);
   color: var(--text-primary);
+}
+
+/* Themed date input calendar icon (replaces pure black icon) */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.75;
+  filter: invert(32%) sepia(65%) saturate(632%) hue-rotate(118deg) brightness(92%) contrast(92%);
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(56%) sepia(55%) saturate(564%) hue-rotate(114deg) brightness(95%) contrast(90%);
 }

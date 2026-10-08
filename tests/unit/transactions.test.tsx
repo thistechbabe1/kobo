@@ -248,17 +248,34 @@ describe('transaction browser UI and edge cases', () => {
     unmount();
   });
 
-  it('resets to page one and updates the result count when filters change', async () => {
+  it('resets to page one and updates the result count when filters change via custom select click', async () => {
     const { unmount } = render(<TransactionBrowser transactions={seedTransactions} />);
 
-    const search = screen.getByRole('searchbox', { name: /search transactions/i });
-    fireEvent.change(search, { target: { value: 'gro' } });
+    // Initially all 4 seed transactions are shown
+    expect(screen.getByText('4 results')).toBeInTheDocument();
+
+    // Interact like a user: click the Category custom select trigger, then click option 'GRO'
+    const categoryTrigger = screen.getByRole('button', {
+      name: 'Filter by category, All categories',
+    });
+    fireEvent.click(categoryTrigger);
+
+    const groOption = screen.getByRole('option', { name: 'GRO' });
+    fireEvent.click(groOption);
 
     await waitFor(() => {
       expect(screen.getByText((_, el) => el?.textContent?.trim() === '1 result')).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByLabelText(/filter by category/i), { target: { value: 'GRO' } });
+    // Accessible name updates to include the new visible value
+    expect(
+      screen.getByRole('button', { name: 'Filter by category, GRO' })
+    ).toBeInTheDocument();
+
+    // Also filter via search input
+    const search = screen.getByRole('searchbox', { name: /search transactions/i });
+    fireEvent.change(search, { target: { value: 'groceries' } });
+
     await waitFor(() => {
       expect(screen.getByText((_, el) => el?.textContent?.trim() === '1 result')).toBeInTheDocument();
     });
@@ -269,13 +286,88 @@ describe('transaction browser UI and edge cases', () => {
     unmount();
   });
 
-  it('renders filter controls and pagination without axe violations', async () => {
+  it('supports keyboard navigation on CustomSelect (ArrowUp/ArrowDown, Enter/Space to select, Escape to close, focus returns to trigger)', async () => {
+    const { unmount } = render(<TransactionBrowser transactions={seedTransactions} />);
+
+    const categoryTrigger = screen.getByRole('button', {
+      name: 'Filter by category, All categories',
+    });
+    categoryTrigger.focus();
+    expect(document.activeElement).toBe(categoryTrigger);
+
+    // 1. Open via ArrowDown: focus moves into listbox/sheet and body scroll is locked
+    fireEvent.keyDown(categoryTrigger, { key: 'ArrowDown' });
+    const listbox = screen.getByRole('listbox', { name: /filter by category/i });
+    expect(listbox).toBeInTheDocument();
+    expect(document.activeElement).toBe(listbox);
+    expect(document.body.style.overflow).toBe('hidden');
+
+    // Navigate down to 'GRO' (index 3: ALL=0, SAL=1, TRF=2, GRO=3), select with Enter
+    fireEvent.keyDown(listbox, { key: 'ArrowDown' }); // SAL (1)
+    fireEvent.keyDown(listbox, { key: 'ArrowDown' }); // TRF (2)
+    fireEvent.keyDown(listbox, { key: 'ArrowDown' }); // GRO (3)
+    fireEvent.keyDown(listbox, { key: 'Enter' });
+
+    // Listbox closes, focus returns to trigger, body scroll is released, accessible name and results update
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(categoryTrigger);
+    expect(document.body.style.overflow).toBe('');
+    expect(categoryTrigger).toHaveAccessibleName('Filter by category, GRO');
+    await waitFor(() => {
+      expect(screen.getByText((_, el) => el?.textContent?.trim() === '1 result')).toBeInTheDocument();
+    });
+
+    // 2. Open via Space, navigate with ArrowUp to 'TRF' (index 2), select with Space
+    fireEvent.keyDown(categoryTrigger, { key: ' ' });
+    const listbox2 = screen.getByRole('listbox', { name: /filter by category/i });
+    expect(document.activeElement).toBe(listbox2);
+    expect(document.body.style.overflow).toBe('hidden');
+    fireEvent.keyDown(listbox2, { key: 'ArrowUp' }); // TRF (2)
+    fireEvent.keyDown(listbox2, { key: ' ' });
+
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(categoryTrigger);
+    expect(document.body.style.overflow).toBe('');
+    expect(categoryTrigger).toHaveAccessibleName('Filter by category, TRF');
+
+    // 3. Open via Enter, move with ArrowDown, press Escape to cancel without changing selection
+    fireEvent.keyDown(categoryTrigger, { key: 'Enter' });
+    const listbox3 = screen.getByRole('listbox', { name: /filter by category/i });
+    expect(document.activeElement).toBe(listbox3);
+    expect(document.body.style.overflow).toBe('hidden');
+    fireEvent.keyDown(listbox3, { key: 'ArrowDown' });
+    fireEvent.keyDown(listbox3, { key: 'Escape' });
+
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(categoryTrigger);
+    expect(document.body.style.overflow).toBe('');
+    expect(categoryTrigger).toHaveAccessibleName('Filter by category, TRF');
+
+    // 4. Open via click, tap backdrop to close: confirms focus returns to trigger and body scroll is released
+    fireEvent.click(categoryTrigger);
+    const listbox4 = screen.getByRole('listbox', { name: /filter by category/i });
+    expect(document.activeElement).toBe(listbox4);
+    expect(document.body.style.overflow).toBe('hidden');
+
+    fireEvent.click(screen.getByTestId('category-select-backdrop'));
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(categoryTrigger);
+    expect(document.body.style.overflow).toBe('');
+
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 300));
+    });
+    unmount();
+  });
+
+  it('renders filter controls and pagination without axe violations and with compound accessible names', async () => {
     const { unmount } = render(<TransactionBrowser transactions={seedTransactions} />);
 
     expect(screen.getByRole('searchbox', { name: /search transactions/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/filter by category/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/filter by type/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/transaction status/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sort transactions, Newest first' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Filter by category, All categories' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Filter by type, All types' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Transaction status, All status' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /next page/i })).toBeInTheDocument();
 
     const filterControls = screen.getByTestId('filter-controls');

@@ -86,7 +86,7 @@ export function AnimatedDashboardPreview() {
                 </div>
                 <div className="flex items-center gap-1.5 mt-1 text-xs text-emerald-200">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>CBN Compliant • NDIC Insured Simulation</span>
+                  <span>CBN Fee Compliant • Bank-Grade Security Design</span>
                 </div>
               </div>
 
