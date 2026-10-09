@@ -58,4 +58,17 @@ describe('kobo_auth JWE Cookie Security (lib/session & proxy)', () => {
     expect(session?.email).toBe('babatunde@kobo.demo');
     expect(session?.name).toBe('Babatunde Adebayo');
   });
+
+  it('5. LOGOUT ROUTE: clears httpOnly kobo_auth and kobo_state cookies on the server', async () => {
+    const { POST } = await import('../../src/app/api/auth/logout/route');
+    const response = await POST();
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toEqual({ success: true, redirect: '/login' });
+
+    const setCookieHeader = response.headers.get('set-cookie') || '';
+    expect(setCookieHeader).toContain('kobo_auth=;');
+    expect(setCookieHeader).toContain('kobo_state=;');
+    expect(setCookieHeader).toContain('Max-Age=0');
+  });
 });

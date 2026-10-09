@@ -6,7 +6,6 @@ import { Wallet, ShieldAlert, ArrowRight, CheckCircle2, Lock } from 'lucide-reac
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { DemoTipsDrawer } from '@/components/layout/DemoTipsDrawer';
 import { PrimaryButton, GhostButton, SurfaceCard } from '@/components/ui';
-import { AUTH_COOKIE_NAME } from '@/proxy';
 
 function LoginForm() {
   const router = useRouter();
@@ -16,10 +15,12 @@ function LoginForm() {
   const [email, setEmail] = useState('babatunde@kobo.demo');
   const [password, setPassword] = useState('••••••••••••');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMsg('');
 
     try {
       const res = await fetch('/api/auth/login', {
@@ -29,19 +30,21 @@ function LoginForm() {
       });
       if (res.ok) {
         router.push(redirectTo);
+        router.refresh();
       } else {
-        // Fallback for demo navigation
-        document.cookie = `${AUTH_COOKIE_NAME}=authenticated; path=/; max-age=604800; SameSite=Lax`;
-        router.push(redirectTo);
+        const data = await res.json().catch(() => ({}));
+        setErrorMsg(data.error || 'Unable to sign in. Please try the demo button above.');
+        setIsLoading(false);
       }
     } catch {
-      document.cookie = `${AUTH_COOKIE_NAME}=authenticated; path=/; max-age=604800; SameSite=Lax`;
-      router.push(redirectTo);
+      setErrorMsg('Network error signing in. Please try again.');
+      setIsLoading(false);
     }
   };
 
   const handleQuickDemoLogin = async () => {
     setIsLoading(true);
+    setErrorMsg('');
     setEmail('babatunde@kobo.demo');
     setPassword('demopassword123');
 
@@ -53,13 +56,15 @@ function LoginForm() {
       });
       if (res.ok) {
         router.push(redirectTo);
+        router.refresh();
       } else {
-        document.cookie = `${AUTH_COOKIE_NAME}=authenticated; path=/; max-age=604800; SameSite=Lax`;
-        router.push(redirectTo);
+        const data = await res.json().catch(() => ({}));
+        setErrorMsg(data.error || 'Unable to start demo session.');
+        setIsLoading(false);
       }
     } catch {
-      document.cookie = `${AUTH_COOKIE_NAME}=authenticated; path=/; max-age=604800; SameSite=Lax`;
-      router.push(redirectTo);
+      setErrorMsg('Network error starting demo session. Please try again.');
+      setIsLoading(false);
     }
   };
 
@@ -99,6 +104,15 @@ function LoginForm() {
           Or Sign In
         </span>
       </div>
+
+      {errorMsg && (
+        <div
+          role="alert"
+          className="mb-4 rounded-xl border border-red-500/30 bg-red-50 dark:bg-red-950/20 px-3.5 py-2.5 text-xs font-medium text-red-700 dark:text-red-300"
+        >
+          {errorMsg}
+        </div>
+      )}
 
       <form onSubmit={handleLogin} className="space-y-4 text-xs">
         <div>

@@ -8,7 +8,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 1. Public routes that are always accessible
-  const publicRoutes = ['/', '/login', '/api/auth/login'];
+  const publicRoutes = ['/', '/login', '/api/auth/login', '/api/auth/logout'];
   if (publicRoutes.includes(pathname)) {
     // If visiting /login while already authenticated, redirect to /dashboard
     if (pathname === '/login') {
