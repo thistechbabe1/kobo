@@ -1,12 +1,5 @@
 import { EncryptJWT, jwtDecrypt } from 'jose';
 
-// Top-level startup check: In production, fail loudly at startup if SESSION_SECRET is missing
-if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
-  throw new Error(
-    'CRITICAL: SESSION_SECRET environment variable is missing in production. ' +
-    'Please set SESSION_SECRET in your production deployment environment (32-byte base64/hex key).'
-  );
-}
 
 function getSecretKey(): Uint8Array {
   const secret = process.env.SESSION_SECRET;
