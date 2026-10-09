@@ -6,7 +6,6 @@ import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
-  CheckCircle2,
   Clock,
   KeyRound,
   Lock,
@@ -17,10 +16,14 @@ import {
 } from 'lucide-react';
 import { NIGERIAN_BANKS } from '@/lib/banks';
 import { calculateTransferFeeKobo, CompactSessionPayload } from '@/lib/session';
+import { Beneficiary, getSavedBeneficiaries, persistBeneficiary } from '@/lib/beneficiaries';
 import { BankSelector } from './BankSelector';
+import { BeneficiaryRail } from './BeneficiaryRail';
+import { OfficialReceipt } from '@/components/receipt/OfficialReceipt';
 
 export interface SendMoneyFlowProps {
   initialState: CompactSessionPayload;
+  initialBeneficiaries?: Beneficiary[];
 }
 
 export type StepNumber = 1 | 2 | 3 | 4 | 5;
@@ -51,13 +54,6 @@ function formatNairaFromKobo(kobo: number): string {
     .trim();
 }
 
-function formatLagosDateTime(epochMs: number): string {
-  return new Intl.DateTimeFormat('en-NG', {
-    timeZone: 'Africa/Lagos',
-    dateStyle: 'medium',
-    timeStyle: 'medium',
-  }).format(new Date(epochMs));
-}
 
 function generateIdempotencyKey(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -66,7 +62,7 @@ function generateIdempotencyKey(): string {
   return `idem-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
-export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
+export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyFlowProps) {
   const bankSelectId = useId();
   const accountInputId = useId();
   const amountInputId = useId();
@@ -94,6 +90,21 @@ export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
   const [resolvedRecipientName, setResolvedRecipientName] = useState<string>('');
   const [isResolving, setIsResolving] = useState<boolean>(false);
   const [resolutionError, setResolutionError] = useState<string>('');
+  const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>(() => {
+    if (initialBeneficiaries) return initialBeneficiaries;
+    if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') {
+      return [];
+    }
+    return getSavedBeneficiaries();
+  });
+  const [saveAsBeneficiary, setSaveAsBeneficiary] = useState<boolean>(true);
+
+  const handleSelectBeneficiary = (ben: Beneficiary) => {
+    setSelectedBankCode(ben.bankCode);
+    setAccountNumber(ben.accountNumber);
+    setResolvedRecipientName(ben.recipientName);
+    setResolutionError('');
+  };
 
   // Step 2: Amount & Narration
   const [amountInputStr, setAmountInputStr] = useState<string>('5000');
@@ -253,6 +264,16 @@ export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
       if (res.ok && data.success) {
         // Successful Transfer!
         setWalletBalanceKobo(data.newBalance);
+        if (saveAsBeneficiary && resolvedRecipientName) {
+          const updated = persistBeneficiary({
+            accountNumber,
+            bankCode: selectedBankCode,
+            bankName: selectedBank.name,
+            bankShortName: selectedBank.shortName,
+            recipientName: resolvedRecipientName,
+          });
+          setBeneficiaries(updated);
+        }
         setReceipt({
           id: data.transaction.id,
           recipientName: resolvedRecipientName,
@@ -455,6 +476,15 @@ export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
             </p>
           </div>
 
+          {/* Quick Send Beneficiary Rail */}
+          <BeneficiaryRail
+            beneficiaries={beneficiaries}
+            selectedBankCode={selectedBankCode}
+            selectedAccountNumber={accountNumber}
+            onSelectBeneficiary={handleSelectBeneficiary}
+            disabled={isLockedOut}
+          />
+
           <div className="space-y-4">
             {/* Bank Selector */}
             <div className="space-y-1.5">
@@ -509,18 +539,30 @@ export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
 
             {/* Account Resolution Badge */}
             {resolvedRecipientName && (
-              <div
-                data-testid="account-verified-badge"
-                className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/30 text-emerald-800 dark:text-emerald-200"
-              >
-                <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <div className="text-xs">
-                  <span className="font-semibold block">{resolvedRecipientName}</span>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                    Verified Account Holder ({selectedBank.shortName})
-                  </span>
+              <>
+                <div
+                  data-testid="account-verified-badge"
+                  className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/30 text-emerald-800 dark:text-emerald-200"
+                >
+                  <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div className="text-xs">
+                    <span className="font-semibold block">{resolvedRecipientName}</span>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                      Verified Account Holder ({selectedBank.shortName})
+                    </span>
+                  </div>
                 </div>
-              </div>
+
+                <label className="flex items-center gap-2.5 text-xs text-[var(--text-primary)] cursor-pointer select-none pt-1">
+                  <input
+                    type="checkbox"
+                    checked={saveAsBeneficiary}
+                    onChange={(e) => setSaveAsBeneficiary(e.target.checked)}
+                    className="w-4 h-4 rounded text-[var(--brand-primary)] accent-[var(--brand-primary)] cursor-pointer"
+                  />
+                  <span>Save recipient as beneficiary for future transfers</span>
+                </label>
+              </>
             )}
 
             {resolutionError && (
@@ -921,71 +963,31 @@ export function SendMoneyFlow({ initialState }: SendMoneyFlowProps) {
       {/* STEP 5: Transaction Receipt */}
       {/* ========================================================================= */}
       {currentStep === 5 && receipt && (
-        <div
-          data-testid="send-step-5"
-          className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-6 sm:p-8 space-y-6 text-center shadow-sm"
-        >
-          <div className="w-14 h-14 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-8 h-8" />
-          </div>
-
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-              Transfer Successful
-            </span>
-            <h2 className="text-2xl font-extrabold text-[var(--text-primary)] font-heading">
-              {formatNairaFromKobo(receipt.amountKobo)}
-            </h2>
-            <p className="text-xs text-[var(--text-muted)]">
-              Sent to {receipt.recipientName} ({receipt.bankName})
-            </p>
-          </div>
-
-          {/* Receipt Breakdown Card */}
-          <div className="text-left divide-y divide-[var(--border-color)] rounded-xl border border-[var(--border-color)] bg-zinc-50/50 dark:bg-zinc-900/30 p-4 text-xs space-y-2.5">
-            <div className="flex justify-between pb-2.5">
-              <span className="text-[var(--text-muted)]">Reference Number</span>
-              <span className="font-mono font-bold text-[var(--text-primary)]">{receipt.id}</span>
-            </div>
-            <div className="flex justify-between py-2.5">
-              <span className="text-[var(--text-muted)]">Recipient Account</span>
-              <span className="font-mono font-semibold text-[var(--text-primary)]">
-                •••• {receipt.accountNumber.slice(-4)}
-              </span>
-            </div>
-            <div className="flex justify-between py-2.5">
-              <span className="text-[var(--text-muted)]">CBN Transfer Fee</span>
-              <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                {receipt.feeKobo === 0 ? 'Free' : formatNairaFromKobo(receipt.feeKobo)}
-              </span>
-            </div>
-            <div className="flex justify-between py-2.5">
-              <span className="text-[var(--text-muted)]">Total Amount Debited</span>
-              <span className="font-mono font-bold text-[var(--text-primary)]">
-                {formatNairaFromKobo(receipt.totalDebitKobo)}
-              </span>
-            </div>
-            <div className="flex justify-between py-2.5">
-              <span className="text-[var(--text-muted)]">Lagos Timestamp</span>
-              <span className="text-[var(--text-primary)] font-mono">
-                {formatLagosDateTime(receipt.timestamp)}
-              </span>
-            </div>
-            <div className="flex justify-between pt-2.5 font-bold">
-              <span className="text-[var(--text-primary)]">New Wallet Balance</span>
-              <span className="font-mono text-emerald-600 dark:text-emerald-400">
-                {formatNairaFromKobo(receipt.newBalanceKobo)}
-              </span>
-            </div>
-          </div>
+        <div data-testid="send-step-5" className="space-y-6">
+          <OfficialReceipt
+            receipt={{
+              id: receipt.id,
+              recipientName: receipt.recipientName,
+              bankName: receipt.bankName,
+              bankCode: selectedBankCode,
+              accountNumber: receipt.accountNumber,
+              amountKobo: receipt.amountKobo,
+              feeKobo: receipt.feeKobo,
+              totalDebitKobo: receipt.totalDebitKobo,
+              newBalanceKobo: receipt.newBalanceKobo,
+              narration: receipt.narration,
+              timestamp: receipt.timestamp,
+              status: 'Completed',
+            }}
+          />
 
           {/* Navigation Actions */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row gap-3 pt-2 max-w-lg mx-auto">
             <button
               type="button"
               data-testid="send-another-btn"
               onClick={handleSendAnother}
-              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer"
             >
               <Send className="w-4 h-4" />
               <span>Send Another Transfer</span>

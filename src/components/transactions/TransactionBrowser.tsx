@@ -2,9 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Clock, Filter, RotateCcw, Search } from 'lucide-react';
-import { CompactUserTx } from '@/lib/session';
+import { ChevronLeft, ChevronRight, Clock, FileText, Filter, RotateCcw, Search } from 'lucide-react';
+import { CompactUserTx, calculateTransferFeeKobo } from '@/lib/session';
 import { filterTransactions, getTransactionStatus, parseTransactionParams, TransactionFilterState, VALID_CATEGORIES, VALID_SORTS, VALID_STATUSES, VALID_TYPES } from '@/lib/transactions';
+import { getBankByCode } from '@/lib/banks';
+import { TransactionReceiptModal } from '@/components/receipt/TransactionReceiptModal';
+import { ReceiptData } from '@/components/receipt/OfficialReceipt';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { PrimaryButton, GhostButton, SurfaceCard } from '@/components/ui';
 
@@ -24,6 +27,29 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
   const [announcement, setAnnouncement] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const prevParamsRef = useRef(searchParamsString);
+
+  const [selectedTxForReceipt, setSelectedTxForReceipt] = useState<CompactUserTx | null>(null);
+
+  const activeReceiptData = useMemo<ReceiptData | null>(() => {
+    if (!selectedTxForReceipt) return null;
+    const bank = selectedTxForReceipt.bnk ? getBankByCode(selectedTxForReceipt.bnk) : undefined;
+    const isDebit = selectedTxForReceipt.typ === 'D';
+    const fee = isDebit ? calculateTransferFeeKobo(selectedTxForReceipt.amt) : 0;
+    return {
+      id: selectedTxForReceipt.id,
+      recipientName: selectedTxForReceipt.rec || (isDebit ? 'Transfer Recipient' : 'Kobo Wallet Account'),
+      bankName: bank?.name || (isDebit ? 'Commercial Bank' : 'Kobo Internal Settlement'),
+      bankCode: selectedTxForReceipt.bnk,
+      accountNumber: selectedTxForReceipt.acc ? `•••• ${selectedTxForReceipt.acc}` : '•••• 0000',
+      amountKobo: selectedTxForReceipt.amt,
+      feeKobo: fee,
+      totalDebitKobo: selectedTxForReceipt.amt + fee,
+      narration: selectedTxForReceipt.nar,
+      timestamp: selectedTxForReceipt.ts,
+      status: selectedTxForReceipt.status || 'Completed',
+      senderName: isDebit ? 'Babatunde A. • Kobo Wallet' : (selectedTxForReceipt.rec || 'External Sender'),
+    };
+  }, [selectedTxForReceipt]);
 
   useEffect(() => {
     if (prevParamsRef.current !== searchParamsString) {
@@ -291,18 +317,30 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
                         <span>{tx.rec ?? 'Transfer'} • {dateLabel}</span>
                       </div>
 
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${
-                          status === 'Completed'
-                            ? 'border-emerald-600/30 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
-                            : status === 'Pending'
-                              ? 'border-sky-600/30 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300'
-                              : 'border-red-600/30 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300'
-                        }`}
-                      >
-                        {status === 'Pending' && <Clock className="w-2.5 h-2.5 shrink-0" />}
-                        <span>{status}</span>
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTxForReceipt(tx)}
+                          aria-label={`View receipt for ${tx.nar}`}
+                          className="text-[10px] font-semibold text-[var(--brand-primary)] hover:underline cursor-pointer inline-flex items-center gap-1"
+                        >
+                          <FileText className="w-3 h-3" />
+                          <span>Receipt</span>
+                        </button>
+
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${
+                            status === 'Completed'
+                              ? 'border-emerald-600/30 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
+                              : status === 'Pending'
+                                ? 'border-sky-600/30 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300'
+                                : 'border-red-600/30 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300'
+                          }`}
+                        >
+                          {status === 'Pending' && <Clock className="w-2.5 h-2.5 shrink-0" />}
+                          <span>{status}</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -319,6 +357,7 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
                     <th scope="col" className="px-4 py-3 font-semibold">Status</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Date</th>
                     <th scope="col" className="px-4 py-3 text-right font-semibold">Amount</th>
+                    <th scope="col" className="px-4 py-3 text-center font-semibold">Receipt</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-color)]">
@@ -367,6 +406,17 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
                             {isCredit ? `+₦${formatted}` : `-₦${formatted}`}
                           </span>
                         </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTxForReceipt(tx)}
+                            aria-label={`View receipt for ${tx.nar}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] text-[11px] font-semibold text-[var(--text-primary)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] transition-colors cursor-pointer"
+                          >
+                            <FileText className="w-3 h-3 text-[var(--brand-primary)]" />
+                            <span>Receipt</span>
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -412,6 +462,12 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
           </div>
         )}
       </SurfaceCard>
+
+      <TransactionReceiptModal
+        isOpen={Boolean(selectedTxForReceipt)}
+        receipt={activeReceiptData}
+        onClose={() => setSelectedTxForReceipt(null)}
+      />
     </div>
   );
 }
