@@ -53,12 +53,25 @@ describe('Official Receipts & Modals (Feature 2)', () => {
   });
 
   describe('OfficialReceipt Component', () => {
-    it('renders CBN compliant header, reference, formatted amounts, and breakdown', () => {
+    it('renders simulation header, DEMO ONLY watermarks, simulated reference, and breakdown', () => {
       render(<OfficialReceipt receipt={mockReceipt} />);
 
       expect(screen.getByTestId('official-receipt-card')).toBeInTheDocument();
-      expect(screen.getByText('CBN Compliant')).toBeInTheDocument();
-      expect(screen.getByText('Official Electronic Payment Receipt')).toBeInTheDocument();
+      // Verify visible watermark banner and overlay
+      expect(screen.getByTestId('demo-watermark-banner')).toHaveTextContent('DEMO ONLY - no real money');
+      expect(screen.getByTestId('demo-watermark-overlay')).toHaveTextContent('DEMO ONLY - no real money');
+
+      // Verify simulated labels
+      expect(screen.getByText('Simulated Reference')).toBeInTheDocument();
+      expect(screen.getByText('Simulated NIP Session ID')).toBeInTheDocument();
+      expect(screen.getByText('Simulation Only')).toBeInTheDocument();
+      expect(screen.getByText('Demo Electronic Payment Receipt')).toBeInTheDocument();
+
+      // Ensure NO CBN compliance or official stamp wording
+      expect(screen.queryByText(/CBN Compliant/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/CBN Regulatory/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Official Electronic Payment Receipt/i)).not.toBeInTheDocument();
+
       expect(screen.getByText('Transfer Successful')).toBeInTheDocument();
       expect(screen.getByText('₦50,000.00')).toBeInTheDocument();
       expect(screen.getByText('TX892101')).toBeInTheDocument();
@@ -114,7 +127,7 @@ describe('Official Receipts & Modals (Feature 2)', () => {
         />
       );
 
-      expect(screen.getByRole('dialog', { name: /Transaction e-Receipt/i })).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /Demo Transaction Receipt/i })).toBeInTheDocument();
 
       fireEvent.keyDown(window, { key: 'Escape' });
       expect(mockClose).toHaveBeenCalledTimes(1);
@@ -148,7 +161,7 @@ describe('Official Receipts & Modals (Feature 2)', () => {
       fireEvent.click(receiptBtns[0]);
 
       // Modal is now open
-      expect(screen.getByRole('dialog', { name: /Transaction e-Receipt/i })).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /Demo Transaction Receipt/i })).toBeInTheDocument();
       expect(screen.getByText('TX892101')).toBeInTheDocument();
     });
   });

@@ -8,11 +8,13 @@ import {
   persistBeneficiary,
   removeBeneficiary,
   Beneficiary,
+  DEFAULT_USER_ID,
 } from '@/lib/beneficiaries';
 import { BeneficiaryRail } from '@/components/send/BeneficiaryRail';
 import { SendMoneyFlow } from '@/components/send/SendMoneyFlow';
 import { CompactSessionPayload } from '@/lib/session';
 import { GET, POST, DELETE } from '@/app/api/wallet/beneficiaries/route';
+import { resetRateLimitStore, resetServerBeneficiaries } from '@/lib/beneficiaries-server';
 import { NextRequest } from 'next/server';
 
 const mockBaseState: CompactSessionPayload = {
@@ -121,8 +123,42 @@ describe('Saved Beneficiaries (Feature 1)', () => {
   });
 
   describe('/api/wallet/beneficiaries Route Handlers', () => {
-    it('GET returns list of beneficiaries', async () => {
-      const res = await GET();
+    beforeEach(() => {
+      resetRateLimitStore();
+      resetServerBeneficiaries();
+    });
+
+    it('rejects unauthenticated requests with 401', async () => {
+      const getReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
+        method: 'GET',
+      });
+      const getRes = await GET(getReq);
+      expect(getRes.status).toBe(401);
+
+      const postReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
+        method: 'POST',
+        body: JSON.stringify({
+          accountNumber: '0123456789',
+          bankCode: '058',
+          bankName: 'GTBank',
+          recipientName: 'Test',
+        }),
+      });
+      const postRes = await POST(postReq);
+      expect(postRes.status).toBe(401);
+
+      const deleteReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries?id=ben_1', {
+        method: 'DELETE',
+      });
+      const deleteRes = await DELETE(deleteReq);
+      expect(deleteRes.status).toBe(401);
+    });
+
+    it('GET returns list of beneficiaries scoped to the authenticated user', async () => {
+      const req = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
+        headers: { 'x-user-id': DEFAULT_USER_ID },
+      });
+      const res = await GET(req);
       const data = await res.json();
       expect(res.status).toBe(200);
       expect(data.success).toBe(true);
@@ -130,27 +166,46 @@ describe('Saved Beneficiaries (Feature 1)', () => {
       expect(data.beneficiaries.length).toBeGreaterThanOrEqual(3);
     });
 
-    it('POST validates 10-digit account number and required fields', async () => {
-      const invalidReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
+    it('POST validates 10-digit account number and required fields via Zod', async () => {
+      const invalidAccReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
         method: 'POST',
+        headers: { 'x-user-id': 'usr_demo_user' },
         body: JSON.stringify({
-          accountNumber: '123', // Invalid
+          accountNumber: '123', // Invalid: not 10 digits
           bankCode: '058',
           bankName: 'GTBank',
           recipientName: 'Test User',
         }),
       });
 
-      const res = await POST(invalidReq);
-      const data = await res.json();
-      expect(res.status).toBe(400);
-      expect(data.success).toBe(false);
-      expect(data.error).toMatch(/10 digits/i);
+      const res1 = await POST(invalidAccReq);
+      const data1 = await res1.json();
+      expect(res1.status).toBe(400);
+      expect(data1.success).toBe(false);
+      expect(data1.error).toMatch(/10 digits/i);
+
+      const emptyNameReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
+        method: 'POST',
+        headers: { 'x-user-id': 'usr_demo_user' },
+        body: JSON.stringify({
+          accountNumber: '0123456789',
+          bankCode: '058',
+          bankName: 'GTBank',
+          recipientName: '', // Invalid: empty
+        }),
+      });
+
+      const res2 = await POST(emptyNameReq);
+      const data2 = await res2.json();
+      expect(res2.status).toBe(400);
+      expect(data2.success).toBe(false);
+      expect(data2.error).toMatch(/Recipient name is required/i);
     });
 
-    it('POST saves new beneficiary successfully', async () => {
+    it('POST saves new beneficiary successfully when authenticated', async () => {
       const validReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
         method: 'POST',
+        headers: { 'x-user-id': 'usr_demo_user' },
         body: JSON.stringify({
           accountNumber: '9988776655',
           bankCode: '058',
@@ -167,17 +222,110 @@ describe('Saved Beneficiaries (Feature 1)', () => {
       expect(data.beneficiaries[0].recipientName).toBe('Ngozi Okonjo');
     });
 
-    it('DELETE removes beneficiary by ID', async () => {
-      const deleteReq = new NextRequest(
-        'http://localhost:3000/api/wallet/beneficiaries?id=ben_1',
-        { method: 'DELETE' }
+    it('enforces the maximum 20-beneficiary cap and rejects the 21st addition', async () => {
+      // Seed a clean user with exactly 20 beneficiaries
+      const testUserId = 'usr_cap_tester';
+
+      for (let i = 1; i <= 20; i++) {
+        const paddedNum = i.toString().padStart(10, '0');
+        const req = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
+          method: 'POST',
+          headers: { 'x-user-id': testUserId },
+          body: JSON.stringify({
+            accountNumber: paddedNum,
+            bankCode: '058',
+            bankName: 'GTBank',
+            recipientName: `Beneficiary ${i}`,
+          }),
+        });
+        const res = await POST(req);
+        expect(res.status).toBe(200);
+      }
+
+      // 21st beneficiary attempt must fail with 400
+      const overflowReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
+        method: 'POST',
+        headers: { 'x-user-id': testUserId },
+        body: JSON.stringify({
+          accountNumber: '9999999999',
+          bankCode: '058',
+          bankName: 'GTBank',
+          recipientName: 'Overflow Beneficiary',
+        }),
+      });
+
+      const resOverflow = await POST(overflowReq);
+      const dataOverflow = await resOverflow.json();
+      expect(resOverflow.status).toBe(400);
+      expect(dataOverflow.success).toBe(false);
+      expect(dataOverflow.error).toMatch(/Maximum beneficiary cap of 20 reached/i);
+    });
+
+    it('prevents deleting another user\'s beneficiary and returns 403 Forbidden', async () => {
+      // User A creates a beneficiary
+      const userAReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
+        method: 'POST',
+        headers: { 'x-user-id': 'user_alice' },
+        body: JSON.stringify({
+          accountNumber: '1111222233',
+          bankCode: '058',
+          bankName: 'GTBank',
+          recipientName: 'Alice Friend',
+        }),
+      });
+      const userARes = await POST(userAReq);
+      const userAData = await userARes.json();
+      const aliceBenId = userAData.beneficiaries[0].id;
+      expect(aliceBenId).toBeDefined();
+
+      // User B attempts to DELETE User A's beneficiary
+      const attackReq = new NextRequest(
+        `http://localhost:3000/api/wallet/beneficiaries?id=${aliceBenId}`,
+        {
+          method: 'DELETE',
+          headers: { 'x-user-id': 'user_bob' },
+        }
       );
 
-      const res = await DELETE(deleteReq);
-      const data = await res.json();
-      expect(res.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.beneficiaries.some((b: Beneficiary) => b.id === 'ben_1')).toBe(false);
+      const attackRes = await DELETE(attackReq);
+      const attackData = await attackRes.json();
+      expect(attackRes.status).toBe(403);
+      expect(attackData.success).toBe(false);
+      expect(attackData.error).toMatch(/Forbidden: You cannot delete another user's beneficiary/i);
+
+      // User A can successfully delete their own beneficiary
+      const legitDeleteReq = new NextRequest(
+        `http://localhost:3000/api/wallet/beneficiaries?id=${aliceBenId}`,
+        {
+          method: 'DELETE',
+          headers: { 'x-user-id': 'user_alice' },
+        }
+      );
+      const legitRes = await DELETE(legitDeleteReq);
+      expect(legitRes.status).toBe(200);
+      const legitData = await legitRes.json();
+      expect(legitData.beneficiaries.some((b: Beneficiary) => b.id === aliceBenId)).toBe(false);
+    });
+
+    it('enforces rate limits on beneficiary endpoints', async () => {
+      const rateLimitUser = 'usr_spammer';
+      // Rate limit is 30 requests per minute
+      for (let i = 0; i < 30; i++) {
+        const req = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
+          headers: { 'x-user-id': rateLimitUser },
+        });
+        const res = await GET(req);
+        expect(res.status).toBe(200);
+      }
+
+      // 31st request should be rate-limited
+      const throttledReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
+        headers: { 'x-user-id': rateLimitUser },
+      });
+      const throttledRes = await GET(throttledReq);
+      expect(throttledRes.status).toBe(429);
+      const throttledData = await throttledRes.json();
+      expect(throttledData.error).toMatch(/Rate limit exceeded/i);
     });
   });
 });

@@ -74,7 +74,7 @@ export function TransactionReceiptModal({
             id="receipt-modal-title"
             className="text-sm font-bold text-[var(--text-primary)] font-heading"
           >
-            Transaction e-Receipt
+            Demo Transaction Receipt
           </h2>
           <button
             ref={closeBtnRef}
