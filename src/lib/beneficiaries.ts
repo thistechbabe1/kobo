@@ -1,6 +1,11 @@
 import { z } from 'zod';
+import {
+  CompactBeneficiary,
+  CompactSessionPayload,
+  MAX_BENEFICIARIES_CAP,
+} from './session';
 
-export const MAX_BENEFICIARIES_CAP = 20;
+export { MAX_BENEFICIARIES_CAP };
 export const DEFAULT_USER_ID = 'usr_babatunde_001';
 
 export interface Beneficiary {
@@ -76,98 +81,126 @@ export const SEEDED_BENEFICIARIES: Beneficiary[] = [
   },
 ];
 
-const STORAGE_KEY = 'kobo_saved_beneficiaries';
-
 /**
- * Loads beneficiaries from localStorage (merging with default seeds) or returns seeds.
+ * Transforms a Beneficiary model to compact cookie payload representation
  */
-export function getSavedBeneficiaries(userId: string = DEFAULT_USER_ID): Beneficiary[] {
-  if (typeof window === 'undefined') {
-    return SEEDED_BENEFICIARIES.filter((b) => !b.userId || b.userId === userId);
-  }
-
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return SEEDED_BENEFICIARIES.filter((b) => !b.userId || b.userId === userId);
-    }
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed.filter((b: Beneficiary) => !b.userId || b.userId === userId);
-    }
-    return SEEDED_BENEFICIARIES.filter((b) => !b.userId || b.userId === userId);
-  } catch {
-    return SEEDED_BENEFICIARIES.filter((b) => !b.userId || b.userId === userId);
-  }
+export function toCompactBeneficiary(b: Beneficiary): CompactBeneficiary {
+  return {
+    id: b.id,
+    a: b.accountNumber,
+    b: b.bankCode,
+    n: b.bankName,
+    s: b.bankShortName,
+    r: b.recipientName,
+    k: b.nickname,
+    u: b.userId && b.userId !== DEFAULT_USER_ID ? b.userId : undefined,
+    t: b.lastUsedAt,
+  };
 }
 
 /**
- * Saves a new beneficiary or updates an existing one's lastUsedAt, enforcing MAX_BENEFICIARIES_CAP.
+ * Transforms a compact cookie item back to Beneficiary model
+ */
+export function fromCompactBeneficiary(
+  c: CompactBeneficiary,
+  userId: string = DEFAULT_USER_ID
+): Beneficiary {
+  return {
+    id: c.id,
+    userId: c.u || userId,
+    accountNumber: c.a,
+    bankCode: c.b,
+    bankName: c.n,
+    bankShortName: c.s || c.n.split(' ')[0],
+    recipientName: c.r,
+    nickname: c.k,
+    lastUsedAt: c.t,
+  };
+}
+
+export const SEEDED_COMPACT_BENEFICIARIES: CompactBeneficiary[] =
+  SEEDED_BENEFICIARIES.map(toCompactBeneficiary);
+
+/**
+ * Returns beneficiaries from session state or fallback seeds (Option A: cookie-only)
+ */
+export function getSavedBeneficiaries(
+  stateOrList?: CompactSessionPayload | CompactBeneficiary[] | Beneficiary[],
+  userId: string = DEFAULT_USER_ID
+): Beneficiary[] {
+  if (!stateOrList) {
+    return SEEDED_BENEFICIARIES.filter((b) => !b.userId || b.userId === userId);
+  }
+
+  if (Array.isArray(stateOrList)) {
+    if (stateOrList.length === 0) {
+      return [];
+    }
+    const first = stateOrList[0];
+    if ('accountNumber' in first) {
+      return stateOrList as Beneficiary[];
+    }
+    return (stateOrList as CompactBeneficiary[]).map((c) => fromCompactBeneficiary(c, userId));
+  }
+
+  // CompactSessionPayload passed
+  const compactBens = stateOrList.ben;
+  if (Array.isArray(compactBens) && compactBens.length > 0) {
+    return compactBens.map((c) => fromCompactBeneficiary(c, userId));
+  }
+
+  return SEEDED_BENEFICIARIES.filter((b) => !b.userId || b.userId === userId);
+}
+
+/**
+ * Pure helper to insert or update a beneficiary in memory list, enforcing MAX_BENEFICIARIES_CAP = 5.
  */
 export function persistBeneficiary(
-  beneficiary: Omit<Beneficiary, 'id' | 'lastUsedAt'> & { id?: string; userId?: string }
+  beneficiary: Omit<Beneficiary, 'id' | 'lastUsedAt' | 'bankShortName'> & {
+    id?: string;
+    userId?: string;
+    bankShortName?: string;
+  },
+  currentList: Beneficiary[] = SEEDED_BENEFICIARIES
 ): Beneficiary[] {
-  if (typeof window === 'undefined') {
-    return SEEDED_BENEFICIARIES;
+  const current = [...currentList];
+  const existingIndex = current.findIndex(
+    (b) => b.accountNumber === beneficiary.accountNumber && b.bankCode === beneficiary.bankCode
+  );
+
+  const now = Date.now();
+
+  if (existingIndex >= 0) {
+    const existing = current[existingIndex];
+    const merged: Beneficiary = {
+      ...existing,
+      ...beneficiary,
+      bankShortName: beneficiary.bankShortName || existing.bankShortName,
+      id: existing.id,
+      userId: beneficiary.userId || existing.userId || DEFAULT_USER_ID,
+      lastUsedAt: now,
+    };
+    return [merged, ...current.filter((_, idx) => idx !== existingIndex)];
   }
 
-  try {
-    const current = getSavedBeneficiaries(beneficiary.userId || DEFAULT_USER_ID);
-    const existingIndex = current.findIndex(
-      (b) => b.accountNumber === beneficiary.accountNumber && b.bankCode === beneficiary.bankCode
-    );
-
-    const now = Date.now();
-    let updated: Beneficiary[];
-
-    if (existingIndex >= 0) {
-      const existing = current[existingIndex];
-      const merged: Beneficiary = {
-        ...existing,
-        ...beneficiary,
-        id: existing.id,
-        userId: beneficiary.userId || existing.userId || DEFAULT_USER_ID,
-        lastUsedAt: now,
-      };
-      updated = [merged, ...current.filter((_, idx) => idx !== existingIndex)];
-    } else {
-      if (current.length >= MAX_BENEFICIARIES_CAP) {
-        throw new Error(`Maximum beneficiary cap of ${MAX_BENEFICIARIES_CAP} reached.`);
-      }
-
-      const newBen: Beneficiary = {
-        id: beneficiary.id || `ben_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        userId: beneficiary.userId || DEFAULT_USER_ID,
-        ...beneficiary,
-        lastUsedAt: now,
-      };
-      updated = [newBen, ...current];
-    }
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    return updated;
-  } catch (err) {
-    if (err instanceof Error && err.message.includes('Maximum beneficiary cap')) {
-      throw err;
-    }
-    return SEEDED_BENEFICIARIES;
+  if (current.length >= MAX_BENEFICIARIES_CAP) {
+    throw new Error(`Maximum beneficiary cap of ${MAX_BENEFICIARIES_CAP} reached. Please remove a beneficiary to add a new one.`);
   }
+
+  const newBen: Beneficiary = {
+    id: beneficiary.id || `ben_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    userId: beneficiary.userId || DEFAULT_USER_ID,
+    bankShortName: beneficiary.bankShortName || beneficiary.bankName.split(' ')[0],
+    ...beneficiary,
+    lastUsedAt: now,
+  };
+
+  return [newBen, ...current];
 }
 
 /**
- * Removes a beneficiary by id.
+ * Pure helper to remove a beneficiary by id from a beneficiary list.
  */
-export function removeBeneficiary(id: string, userId: string = DEFAULT_USER_ID): Beneficiary[] {
-  if (typeof window === 'undefined') {
-    return SEEDED_BENEFICIARIES;
-  }
-
-  try {
-    const current = getSavedBeneficiaries(userId);
-    const filtered = current.filter((b) => b.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-    return filtered;
-  } catch {
-    return SEEDED_BENEFICIARIES;
-  }
+export function removeBeneficiary(id: string, currentList: Beneficiary[] = SEEDED_BENEFICIARIES): Beneficiary[] {
+  return currentList.filter((b) => b.id !== id);
 }

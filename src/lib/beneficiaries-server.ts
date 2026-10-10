@@ -1,21 +1,5 @@
 import { NextRequest } from 'next/server';
 import { unsealAuthToken, AUTH_COOKIE_NAME } from '@/lib/session';
-import { SEEDED_BENEFICIARIES, Beneficiary } from '@/lib/beneficiaries';
-
-// In-memory server store for demo session, seeded with initial demo user entries
-let serverBeneficiaries: Beneficiary[] = [...SEEDED_BENEFICIARIES];
-
-export function getServerBeneficiaries(): Beneficiary[] {
-  return serverBeneficiaries;
-}
-
-export function setServerBeneficiaries(bens: Beneficiary[]): void {
-  serverBeneficiaries = bens;
-}
-
-export function resetServerBeneficiaries(): void {
-  serverBeneficiaries = [...SEEDED_BENEFICIARIES];
-}
 
 // Rate Limiter: In-memory sliding window (max 30 requests per 60s per user)
 interface RateLimitRecord {

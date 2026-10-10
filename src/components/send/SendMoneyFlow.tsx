@@ -92,10 +92,7 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
   const [resolutionError, setResolutionError] = useState<string>('');
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>(() => {
     if (initialBeneficiaries) return initialBeneficiaries;
-    if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') {
-      return [];
-    }
-    return getSavedBeneficiaries();
+    return getSavedBeneficiaries(initialState);
   });
   const [saveAsBeneficiary, setSaveAsBeneficiary] = useState<boolean>(true);
 
@@ -265,14 +262,32 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
         // Successful Transfer!
         setWalletBalanceKobo(data.newBalance);
         if (saveAsBeneficiary && resolvedRecipientName) {
-          const updated = persistBeneficiary({
-            accountNumber,
-            bankCode: selectedBankCode,
-            bankName: selectedBank.name,
-            bankShortName: selectedBank.shortName,
-            recipientName: resolvedRecipientName,
-          });
-          setBeneficiaries(updated);
+          try {
+            const updated = persistBeneficiary(
+              {
+                accountNumber,
+                bankCode: selectedBankCode,
+                bankName: selectedBank.name,
+                bankShortName: selectedBank.shortName,
+                recipientName: resolvedRecipientName,
+              },
+              beneficiaries
+            );
+            setBeneficiaries(updated);
+            fetch('/api/wallet/beneficiaries', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                accountNumber,
+                bankCode: selectedBankCode,
+                bankName: selectedBank.name,
+                bankShortName: selectedBank.shortName,
+                recipientName: resolvedRecipientName,
+              }),
+            }).catch(() => {});
+          } catch {
+            // Ignore if cap reached
+          }
         }
         setReceipt({
           id: data.transaction.id,

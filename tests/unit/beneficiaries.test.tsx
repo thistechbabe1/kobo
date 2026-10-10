@@ -7,14 +7,21 @@ import {
   getSavedBeneficiaries,
   persistBeneficiary,
   removeBeneficiary,
+  toCompactBeneficiary,
+  fromCompactBeneficiary,
   Beneficiary,
   DEFAULT_USER_ID,
+  MAX_BENEFICIARIES_CAP,
 } from '@/lib/beneficiaries';
 import { BeneficiaryRail } from '@/components/send/BeneficiaryRail';
 import { SendMoneyFlow } from '@/components/send/SendMoneyFlow';
-import { CompactSessionPayload } from '@/lib/session';
+import {
+  COOKIE_NAME,
+  CompactSessionPayload,
+  sealSessionState,
+} from '@/lib/session';
 import { GET, POST, DELETE } from '@/app/api/wallet/beneficiaries/route';
-import { resetRateLimitStore, resetServerBeneficiaries } from '@/lib/beneficiaries-server';
+import { resetRateLimitStore } from '@/lib/beneficiaries-server';
 import { NextRequest } from 'next/server';
 
 const mockBaseState: CompactSessionPayload = {
@@ -23,15 +30,12 @@ const mockBaseState: CompactSessionPayload = {
   loc: null,
   txs: [],
   ik: [],
+  ben: [],
 };
 
-describe('Saved Beneficiaries (Feature 1)', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  describe('lib/beneficiaries CRUD and local persistence', () => {
-    it('returns default seeded beneficiaries when storage is empty', () => {
+describe('Saved Beneficiaries (Feature 1) - Option A Cookie-Backed Architecture', () => {
+  describe('lib/beneficiaries pure helpers & compact mapping', () => {
+    it('returns default seeded beneficiaries when no session state is provided', () => {
       const list = getSavedBeneficiaries();
       expect(list).toHaveLength(3);
       expect(list[0].recipientName).toBe('Amina Bello');
@@ -39,42 +43,98 @@ describe('Saved Beneficiaries (Feature 1)', () => {
       expect(list[2].recipientName).toBe('Ibrahim Musa');
     });
 
-    it('persists a new beneficiary and prepends to the list', () => {
-      const updated = persistBeneficiary({
-        accountNumber: '1122334455',
+    it('converts bidirectionally between Beneficiary and CompactBeneficiary', () => {
+      const original: Beneficiary = {
+        id: 'ben_test_1',
+        userId: 'usr_custom_99',
+        accountNumber: '0123456789',
         bankCode: '058',
         bankName: 'Guaranty Trust Bank (GTBank)',
         bankShortName: 'GTB',
-        recipientName: 'Chidi Mokeme',
-      });
+        recipientName: 'Kemi Adeyemi',
+        nickname: 'My Sis',
+        lastUsedAt: 1775736000000,
+      };
+
+      const compact = toCompactBeneficiary(original);
+      expect(compact.a).toBe('0123456789');
+      expect(compact.b).toBe('058');
+      expect(compact.r).toBe('Kemi Adeyemi');
+      expect(compact.u).toBe('usr_custom_99');
+
+      const restored = fromCompactBeneficiary(compact);
+      expect(restored.accountNumber).toBe(original.accountNumber);
+      expect(restored.recipientName).toBe(original.recipientName);
+      expect(restored.userId).toBe('usr_custom_99');
+      expect(restored.nickname).toBe('My Sis');
+    });
+
+    it('persists a new beneficiary and prepends to the list', () => {
+      const updated = persistBeneficiary(
+        {
+          accountNumber: '1122334455',
+          bankCode: '058',
+          bankName: 'Guaranty Trust Bank (GTBank)',
+          bankShortName: 'GTB',
+          recipientName: 'Chidi Mokeme',
+        },
+        SEEDED_BENEFICIARIES
+      );
 
       expect(updated[0].recipientName).toBe('Chidi Mokeme');
       expect(updated[0].accountNumber).toBe('1122334455');
       expect(updated.length).toBe(4);
-
-      // Verify loaded from storage
-      const loaded = getSavedBeneficiaries();
-      expect(loaded[0].recipientName).toBe('Chidi Mokeme');
     });
 
     it('updates existing beneficiary lastUsedAt when re-saved', () => {
-      const updated = persistBeneficiary({
-        accountNumber: '0000000010',
-        bankCode: '058',
-        bankName: 'Guaranty Trust Bank (GTBank)',
-        bankShortName: 'GTB',
-        recipientName: 'Amina Bello (Updated)',
-      });
+      const updated = persistBeneficiary(
+        {
+          accountNumber: '0000000010',
+          bankCode: '058',
+          bankName: 'Guaranty Trust Bank (GTBank)',
+          bankShortName: 'GTB',
+          recipientName: 'Amina Bello (Updated)',
+        },
+        SEEDED_BENEFICIARIES
+      );
 
       expect(updated[0].accountNumber).toBe('0000000010');
       expect(updated[0].recipientName).toBe('Amina Bello (Updated)');
       expect(updated.length).toBe(3); // Deduplicated
     });
 
-    it('removes a beneficiary by id', () => {
-      const afterRemoval = removeBeneficiary('ben_1');
+    it('removes a beneficiary by id from the list', () => {
+      const afterRemoval = removeBeneficiary('ben_1', SEEDED_BENEFICIARIES);
       expect(afterRemoval.some((b) => b.id === 'ben_1')).toBe(false);
       expect(afterRemoval).toHaveLength(2);
+    });
+
+    it('enforces MAX_BENEFICIARIES_CAP = 5 in persistBeneficiary', () => {
+      let list: Beneficiary[] = [];
+      for (let i = 1; i <= 5; i++) {
+        list = persistBeneficiary(
+          {
+            accountNumber: `000000000${i}`,
+            bankCode: '058',
+            bankName: 'GTBank',
+            recipientName: `User ${i}`,
+          },
+          list
+        );
+      }
+      expect(list).toHaveLength(5);
+
+      expect(() => {
+        persistBeneficiary(
+          {
+            accountNumber: '0000000006',
+            bankCode: '058',
+            bankName: 'GTBank',
+            recipientName: 'User 6',
+          },
+          list
+        );
+      }).toThrow(/Maximum beneficiary cap of 5 reached/i);
     });
   });
 
@@ -122,10 +182,9 @@ describe('Saved Beneficiaries (Feature 1)', () => {
     });
   });
 
-  describe('/api/wallet/beneficiaries Route Handlers', () => {
+  describe('/api/wallet/beneficiaries Route Handlers (Cookie-Backed)', () => {
     beforeEach(() => {
       resetRateLimitStore();
-      resetServerBeneficiaries();
     });
 
     it('rejects unauthenticated requests with 401', async () => {
@@ -154,7 +213,7 @@ describe('Saved Beneficiaries (Feature 1)', () => {
       expect(deleteRes.status).toBe(401);
     });
 
-    it('GET returns list of beneficiaries scoped to the authenticated user', async () => {
+    it('GET returns list of beneficiaries scoped to the authenticated user from cookie', async () => {
       const req = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
         headers: { 'x-user-id': DEFAULT_USER_ID },
       });
@@ -202,10 +261,10 @@ describe('Saved Beneficiaries (Feature 1)', () => {
       expect(data2.error).toMatch(/Recipient name is required/i);
     });
 
-    it('POST saves new beneficiary successfully when authenticated', async () => {
+    it('POST saves new beneficiary into kobo_state cookie and returns Set-Cookie header', async () => {
       const validReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
         method: 'POST',
-        headers: { 'x-user-id': 'usr_demo_user' },
+        headers: { 'x-user-id': DEFAULT_USER_ID },
         body: JSON.stringify({
           accountNumber: '9988776655',
           bankCode: '058',
@@ -220,17 +279,38 @@ describe('Saved Beneficiaries (Feature 1)', () => {
       expect(res.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.beneficiaries[0].recipientName).toBe('Ngozi Okonjo');
+
+      // Verify Set-Cookie header is returned with kobo_state
+      const setCookie = res.headers.get('set-cookie');
+      expect(setCookie).toBeTruthy();
+      expect(setCookie).toContain(COOKIE_NAME);
     });
 
-    it('enforces the maximum 20-beneficiary cap and rejects the 21st addition', async () => {
-      // Seed a clean user with exactly 20 beneficiaries
+    it('enforces the maximum 5-beneficiary cap (Option A) and rejects the 6th addition', async () => {
       const testUserId = 'usr_cap_tester';
+      let currentCookie = '';
 
-      for (let i = 1; i <= 20; i++) {
+      // Add up to MAX_BENEFICIARIES_CAP (5) beneficiaries by chaining session cookies
+      // Start with clean initial state with 0 beneficiaries
+      const cleanState: CompactSessionPayload = {
+        bal: 24585050,
+        pin: 0,
+        loc: null,
+        txs: [],
+        ik: [],
+        ben: [],
+      };
+      currentCookie = await sealSessionState(cleanState);
+
+      for (let i = 1; i <= MAX_BENEFICIARIES_CAP; i++) {
         const paddedNum = i.toString().padStart(10, '0');
+        const headers: Record<string, string> = {
+          'x-user-id': testUserId,
+          cookie: `${COOKIE_NAME}=${currentCookie}`,
+        };
         const req = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
           method: 'POST',
-          headers: { 'x-user-id': testUserId },
+          headers,
           body: JSON.stringify({
             accountNumber: paddedNum,
             bankCode: '058',
@@ -240,12 +320,24 @@ describe('Saved Beneficiaries (Feature 1)', () => {
         });
         const res = await POST(req);
         expect(res.status).toBe(200);
+
+        // Extract updated cookie from Set-Cookie header for next iteration
+        const setCookie = res.headers.get('set-cookie');
+        if (setCookie) {
+          const match = setCookie.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
+          if (match) {
+            currentCookie = match[1];
+          }
+        }
       }
 
-      // 21st beneficiary attempt must fail with 400
+      // 6th beneficiary attempt must fail with 400
       const overflowReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
         method: 'POST',
-        headers: { 'x-user-id': testUserId },
+        headers: {
+          'x-user-id': testUserId,
+          cookie: `${COOKIE_NAME}=${currentCookie}`,
+        },
         body: JSON.stringify({
           accountNumber: '9999999999',
           bankCode: '058',
@@ -258,11 +350,11 @@ describe('Saved Beneficiaries (Feature 1)', () => {
       const dataOverflow = await resOverflow.json();
       expect(resOverflow.status).toBe(400);
       expect(dataOverflow.success).toBe(false);
-      expect(dataOverflow.error).toMatch(/Maximum beneficiary cap of 20 reached/i);
+      expect(dataOverflow.error).toMatch(/Maximum beneficiary cap of 5 reached/i);
     });
 
     it('prevents deleting another user\'s beneficiary and returns 403 Forbidden', async () => {
-      // User A creates a beneficiary
+      // User Alice creates a beneficiary
       const userAReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
         method: 'POST',
         headers: { 'x-user-id': 'user_alice' },
@@ -278,12 +370,24 @@ describe('Saved Beneficiaries (Feature 1)', () => {
       const aliceBenId = userAData.beneficiaries[0].id;
       expect(aliceBenId).toBeDefined();
 
-      // User B attempts to DELETE User A's beneficiary
+      const setCookie = userARes.headers.get('set-cookie');
+      let aliceCookie = '';
+      if (setCookie) {
+        const match = setCookie.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
+        if (match) {
+          aliceCookie = match[1];
+        }
+      }
+
+      // User Bob attempts to DELETE Alice's beneficiary using the cookie
       const attackReq = new NextRequest(
         `http://localhost:3000/api/wallet/beneficiaries?id=${aliceBenId}`,
         {
           method: 'DELETE',
-          headers: { 'x-user-id': 'user_bob' },
+          headers: {
+            'x-user-id': 'user_bob',
+            cookie: `${COOKIE_NAME}=${aliceCookie}`,
+          },
         }
       );
 
@@ -293,12 +397,15 @@ describe('Saved Beneficiaries (Feature 1)', () => {
       expect(attackData.success).toBe(false);
       expect(attackData.error).toMatch(/Forbidden: You cannot delete another user's beneficiary/i);
 
-      // User A can successfully delete their own beneficiary
+      // User Alice can successfully delete her own beneficiary
       const legitDeleteReq = new NextRequest(
         `http://localhost:3000/api/wallet/beneficiaries?id=${aliceBenId}`,
         {
           method: 'DELETE',
-          headers: { 'x-user-id': 'user_alice' },
+          headers: {
+            'x-user-id': 'user_alice',
+            cookie: `${COOKIE_NAME}=${aliceCookie}`,
+          },
         }
       );
       const legitRes = await DELETE(legitDeleteReq);

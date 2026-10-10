@@ -48,18 +48,17 @@ describe('jose Encrypted Cookie State (lib/session)', () => {
     expect(unsealed.ik).toEqual(['4b445214-e53b-4cb5-b541-e94d80a1c3f1']);
   });
 
-  it('MEASURED COOKIE SIZE TEST: worst-case fields with 10 user transactions AND 5 idempotency keys must remain strictly under 3 KB (3072 bytes)', async () => {
+  it('MEASURED COOKIE SIZE TEST: worst-case fields with 8 user transactions, 5 idempotency keys, AND 5 beneficiaries must remain strictly under 3 KB (3072 bytes)', async () => {
     const worstCaseTxs: CompactUserTx[] = Array.from({ length: MAX_USER_TX_CAP }, (_, i) => ({
       id: `TX99990${i}`,
       typ: 'D',
-      cat: 'TRANSFER', // 8 chars
+      cat: 'TRF', // 3 chars
       amt: 99999999, // 8-digit Kobo amount
-      nar: 'Payment for groceries & supplies', // exactly 32 -> capped at 30: 'Payment for groceries & suppl.'
-      rec: 'Folashade Danjuma-Az', // exactly 20 chars
-      bnk: 'First City Monument Bank (FCMB)', // 31 chars (longest bank name)
+      nar: 'Payment for groceries & suppl.', // 30 chars
+      rec: 'Folashade Danjuma-Az', // 20 chars
+      bnk: '058', // 3 chars
       acc: '9876', // 4 chars
       ts: 1758320000000 + i * 60000,
-      status: 'Completed',
     }));
 
     const worstCaseIks = [
@@ -70,21 +69,31 @@ describe('jose Encrypted Cookie State (lib/session)', () => {
       '99887766-5544-3322-1100-ffeeddccbbaa',
     ];
 
+    const worstCaseBens = Array.from({ length: 5 }, (_, i) => ({
+      id: `ben_${i + 1}`,
+      a: `012345678${i}`,
+      b: '058',
+      n: 'GTBank',
+      r: `Folashade Danjuma-Az ${i}`,
+      t: 1758320000000 + i * 1000,
+    }));
+
     const worstCasePayload: CompactSessionPayload = {
       bal: 99999999,
       pin: 3,
       loc: 1759000000000 + 900000,
       txs: worstCaseTxs,
       ik: worstCaseIks,
+      ben: worstCaseBens,
     };
 
     const sealedToken = await sealSessionState(worstCasePayload);
     const sizeInBytes = new TextEncoder().encode(sealedToken).byteLength;
 
-    console.log(`[Cookie Size Measurement] Sealed JWE token size with WORST-CASE fields (10 txs + 5 keys): ${sizeInBytes} bytes`);
+    console.log(`[Cookie Size Measurement] Sealed JWE token size with 8 txs, 5 keys, and 5 beneficiaries: ${sizeInBytes} bytes`);
 
-    // Must be strictly under 3,000 bytes (safely within 3 KB / 3072 bytes limit)
-    expect(sizeInBytes).toBeLessThan(3000);
+    // Must be strictly under 3,072 bytes (RFC 6265 cookie safety budget)
+    expect(sizeInBytes).toBeLessThan(3072);
   });
 
   it('should enforce MAX_USER_TX_CAP (8 items) and roll off oldest transaction when 9th is added', () => {

@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  Beneficiary,
   BeneficiaryInputSchema,
   MAX_BENEFICIARIES_CAP,
   DEFAULT_USER_ID,
+  getSavedBeneficiaries,
+  SEEDED_COMPACT_BENEFICIARIES,
 } from '@/lib/beneficiaries';
 import {
-  getServerBeneficiaries,
-  setServerBeneficiaries,
+  COOKIE_NAME,
+  CompactBeneficiary,
+  CompactSessionPayload,
+  sealSessionState,
+  unsealSessionState,
+} from '@/lib/session';
+import {
   checkRateLimit,
   getSessionUser,
 } from '@/lib/beneficiaries-server';
@@ -29,8 +35,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const serverBeneficiaries = getServerBeneficiaries();
-  const userBeneficiaries = serverBeneficiaries.filter((b) => (b.userId || DEFAULT_USER_ID) === user.userId);
+  const cookie = request.cookies.get(COOKIE_NAME)?.value;
+  const state = await unsealSessionState(cookie);
+  const userBeneficiaries = getSavedBeneficiaries(state, user.userId);
 
   return NextResponse.json({
     success: true,
@@ -74,18 +81,23 @@ export async function POST(request: NextRequest) {
 
     const { accountNumber, bankCode, bankName, bankShortName, recipientName, nickname } = validation.data;
 
-    // 2. User Scoping & Cap Check
-    const serverBeneficiaries = getServerBeneficiaries();
-    const userBeneficiaries = serverBeneficiaries.filter((b) => (b.userId || DEFAULT_USER_ID) === user.userId);
-    const existingIndex = serverBeneficiaries.findIndex(
+    // 2. Cookie State Unseal
+    const cookie = request.cookies.get(COOKIE_NAME)?.value;
+    const state = await unsealSessionState(cookie);
+    const currentBens: CompactBeneficiary[] = state.ben && state.ben.length > 0
+      ? [...state.ben]
+      : [...SEEDED_COMPACT_BENEFICIARIES];
+
+    const userBens = currentBens.filter((b) => (b.u || DEFAULT_USER_ID) === user.userId);
+    const existingIndex = currentBens.findIndex(
       (b) =>
-        (b.userId || DEFAULT_USER_ID) === user.userId &&
-        b.accountNumber === accountNumber &&
-        b.bankCode === bankCode
+        (b.u || DEFAULT_USER_ID) === user.userId &&
+        b.a === accountNumber &&
+        b.b === bankCode
     );
 
     const isUpdate = existingIndex >= 0;
-    if (!isUpdate && userBeneficiaries.length >= MAX_BENEFICIARIES_CAP) {
+    if (!isUpdate && userBens.length >= MAX_BENEFICIARIES_CAP) {
       return NextResponse.json(
         {
           success: false,
@@ -96,37 +108,59 @@ export async function POST(request: NextRequest) {
     }
 
     const now = Date.now();
+    let updatedBens: CompactBeneficiary[];
+
     if (isUpdate) {
-      serverBeneficiaries[existingIndex] = {
-        ...serverBeneficiaries[existingIndex],
-        recipientName,
-        bankName,
-        bankShortName: bankShortName || serverBeneficiaries[existingIndex].bankShortName,
-        nickname: nickname || serverBeneficiaries[existingIndex].nickname,
-        lastUsedAt: now,
+      const existing = currentBens[existingIndex];
+      const updatedItem: CompactBeneficiary = {
+        ...existing,
+        n: bankName,
+        s: bankShortName || existing.s,
+        r: recipientName,
+        k: nickname || existing.k,
+        t: now,
       };
+      updatedBens = [
+        updatedItem,
+        ...currentBens.filter((_, idx) => idx !== existingIndex),
+      ];
     } else {
-      const newBeneficiary: Beneficiary = {
-        id: `ben_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        userId: user.userId,
-        accountNumber,
-        bankCode,
-        bankName,
-        bankShortName: bankShortName || bankName.split(' ')[0],
-        recipientName,
-        nickname,
-        lastUsedAt: now,
+      const newBeneficiary: CompactBeneficiary = {
+        id: `ben_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        u: user.userId !== DEFAULT_USER_ID ? user.userId : undefined,
+        a: accountNumber,
+        b: bankCode,
+        n: bankName,
+        s: bankShortName || bankName.split(' ')[0],
+        r: recipientName,
+        k: nickname,
+        t: now,
       };
-      serverBeneficiaries.unshift(newBeneficiary);
+      updatedBens = [newBeneficiary, ...currentBens].slice(0, MAX_BENEFICIARIES_CAP);
     }
-    setServerBeneficiaries(serverBeneficiaries);
 
-    const updatedUserBens = serverBeneficiaries.filter((b) => (b.userId || DEFAULT_USER_ID) === user.userId);
+    const updatedState: CompactSessionPayload = {
+      ...state,
+      ben: updatedBens,
+    };
 
-    return NextResponse.json({
+    const sealedToken = await sealSessionState(updatedState);
+    const response = NextResponse.json({
       success: true,
-      beneficiaries: updatedUserBens,
+      beneficiaries: getSavedBeneficiaries(updatedState, user.userId),
     });
+
+    response.cookies.set({
+      name: COOKIE_NAME,
+      value: sealedToken,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 604800,
+    });
+
+    return response;
   } catch {
     return NextResponse.json(
       { success: false, error: 'Failed to process beneficiary request' },
@@ -163,8 +197,13 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const serverBeneficiaries = getServerBeneficiaries();
-    const targetIndex = serverBeneficiaries.findIndex((b) => b.id === id);
+    const cookie = request.cookies.get(COOKIE_NAME)?.value;
+    const state = await unsealSessionState(cookie);
+    const currentBens: CompactBeneficiary[] = state.ben && state.ben.length > 0
+      ? [...state.ben]
+      : [...SEEDED_COMPACT_BENEFICIARIES];
+
+    const targetIndex = currentBens.findIndex((b) => b.id === id);
     if (targetIndex === -1) {
       return NextResponse.json(
         { success: false, error: 'Beneficiary not found' },
@@ -172,24 +211,38 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const target = serverBeneficiaries[targetIndex];
+    const target = currentBens[targetIndex];
     // Security check: Cannot delete another user's beneficiary!
-    if ((target.userId || DEFAULT_USER_ID) !== user.userId) {
+    if ((target.u || DEFAULT_USER_ID) !== user.userId) {
       return NextResponse.json(
         { success: false, error: "Forbidden: You cannot delete another user's beneficiary" },
         { status: 403 }
       );
     }
 
-    serverBeneficiaries.splice(targetIndex, 1);
-    setServerBeneficiaries(serverBeneficiaries);
+    const updatedBens = currentBens.filter((b) => b.id !== id);
+    const updatedState: CompactSessionPayload = {
+      ...state,
+      ben: updatedBens,
+    };
 
-    const updatedUserBens = serverBeneficiaries.filter((b) => (b.userId || DEFAULT_USER_ID) === user.userId);
-
-    return NextResponse.json({
+    const sealedToken = await sealSessionState(updatedState);
+    const response = NextResponse.json({
       success: true,
-      beneficiaries: updatedUserBens,
+      beneficiaries: getSavedBeneficiaries(updatedState, user.userId),
     });
+
+    response.cookies.set({
+      name: COOKIE_NAME,
+      value: sealedToken,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 604800,
+    });
+
+    return response;
   } catch {
     return NextResponse.json(
       { success: false, error: 'Failed to delete beneficiary' },

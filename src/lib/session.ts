@@ -1,7 +1,7 @@
 import { EncryptJWT, jwtDecrypt } from 'jose';
 
 
-function getSecretKey(): Uint8Array {
+function getSecretKey(): { kty: 'oct'; k: string } {
   const secret = process.env.SESSION_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === 'production') {
@@ -12,24 +12,29 @@ function getSecretKey(): Uint8Array {
     }
     // Local dev fallback documented in .env.example when .env.local is not present
     const devFallback = 'dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWtleS1mb3ItZGV2ZWxvcG1lbnQtb25seTMyYnl0ZXM=';
-    return new TextEncoder().encode(devFallback).subarray(0, 32);
+    const secretBytes = new TextEncoder().encode(devFallback).subarray(0, 32);
+    return {
+      kty: 'oct',
+      k: Buffer.from(secretBytes).toString('base64url'),
+    };
   }
   
-  // Convert secret string into 32-byte Key
+  // Convert secret string into 32-byte Key and base64url encode for cross-realm JWK compatibility
   const encoder = new TextEncoder();
   const secretBytes = encoder.encode(secret);
-  if (secretBytes.length < 32) {
-    const padded = new Uint8Array(32);
-    padded.set(secretBytes.subarray(0, 32));
-    return padded;
-  }
-  return secretBytes.subarray(0, 32);
+  const padded = new Uint8Array(32);
+  padded.set(secretBytes.subarray(0, 32));
+  return {
+    kty: 'oct',
+    k: Buffer.from(padded).toString('base64url'),
+  };
 }
 
 export const COOKIE_NAME = 'kobo_state';
 export const AUTH_COOKIE_NAME = 'kobo_auth';
 export const MAX_USER_TX_CAP = 8; // Lowered from 10 to 8 to ensure worst-case sealed payload < 3,000 bytes
 export const MAX_IDEMPOTENCY_KEYS_CAP = 5;
+export const MAX_BENEFICIARIES_CAP = 5; // Option A cookie cap
 export const PIN_LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
 export const DEMO_VALID_PIN = '1234';
 
@@ -39,6 +44,18 @@ export interface AuthSessionPayload {
   name: string;
   iat?: number;
   exp?: number;
+}
+
+export interface CompactBeneficiary {
+  id: string; // Compact identifier e.g. 'b1'
+  a: string; // 10-digit NUBAN account number
+  b: string; // Bank code (e.g. '058')
+  n: string; // Bank name
+  s?: string; // Bank short name (e.g. 'GTB')
+  r: string; // Recipient name
+  k?: string; // Optional nickname
+  u?: string; // Optional owner user ID for scoping checks
+  t: number; // lastUsedAt epoch timestamp
 }
 
 export interface CompactUserTx {
@@ -58,8 +75,9 @@ export interface CompactSessionPayload {
   bal: number; // Current wallet balance in Kobo (integer)
   pin: number; // Failed PIN attempts (0-3)
   loc: number | null; // Lock expiry epoch ms or null
-  txs: CompactUserTx[]; // Max 10 user transactions
+  txs: CompactUserTx[]; // Max 8 user transactions
   ik: string[]; // Max 5 recent settled idempotency keys
+  ben?: CompactBeneficiary[]; // Max 5 compact saved beneficiaries
 }
 
 // Reconciled financial baseline values (in Kobo)
@@ -143,6 +161,7 @@ export const DEFAULT_INITIAL_STATE: CompactSessionPayload = {
   loc: null,
   txs: [],
   ik: [],
+  ben: [],
 };
 
 /**
@@ -168,6 +187,7 @@ export async function sealSessionState(payload: CompactSessionPayload): Promise<
   const key = getSecretKey();
   const cappedTxs = (payload.txs || []).slice(0, MAX_USER_TX_CAP);
   const cappedIk = (payload.ik || []).slice(0, MAX_IDEMPOTENCY_KEYS_CAP);
+  const cappedBen = (payload.ben || []).slice(0, MAX_BENEFICIARIES_CAP);
 
   return new EncryptJWT({
     bal: payload.bal,
@@ -175,6 +195,7 @@ export async function sealSessionState(payload: CompactSessionPayload): Promise<
     loc: payload.loc,
     txs: cappedTxs,
     ik: cappedIk,
+    ben: cappedBen,
   })
     .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
     .setIssuedAt()
@@ -200,6 +221,7 @@ export async function unsealSessionState(token: string | undefined): Promise<Com
       loc: (payload.loc as number | null) ?? DEFAULT_INITIAL_STATE.loc,
       txs: Array.isArray(payload.txs) ? (payload.txs as CompactUserTx[]) : [],
       ik: Array.isArray(payload.ik) ? (payload.ik as string[]) : [],
+      ben: Array.isArray(payload.ben) ? (payload.ben as CompactBeneficiary[]) : [],
     };
   } catch {
     return DEFAULT_INITIAL_STATE;
@@ -341,6 +363,7 @@ export function processTransferDebit(
     loc: null,
     txs: updatedTxs,
     ik: updatedIk,
+    ben: currentState.ben || [],
   };
 
   return {
