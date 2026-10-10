@@ -81,6 +81,8 @@ export const SEEDED_BENEFICIARIES: Beneficiary[] = [
   },
 ];
 
+import { NIGERIAN_BANKS } from './banks';
+
 /**
  * Transforms a Beneficiary model to compact cookie payload representation
  */
@@ -89,29 +91,32 @@ export function toCompactBeneficiary(b: Beneficiary): CompactBeneficiary {
     id: b.id,
     a: b.accountNumber,
     b: b.bankCode,
-    n: b.bankName,
+    n: b.bankShortName || b.bankName.slice(0, 20),
     s: b.bankShortName,
-    r: b.recipientName,
+    r: b.recipientName.slice(0, 30),
     k: b.nickname,
-    u: b.userId && b.userId !== DEFAULT_USER_ID ? b.userId : undefined,
     t: b.lastUsedAt,
   };
 }
 
 /**
- * Transforms a compact cookie item back to Beneficiary model
+ * Transforms a compact cookie item back to Beneficiary model, rehydrating full bank names
  */
 export function fromCompactBeneficiary(
   c: CompactBeneficiary,
   userId: string = DEFAULT_USER_ID
 ): Beneficiary {
+  const bank = NIGERIAN_BANKS.find((b) => b.code === c.b);
+  const bankName = bank?.name || c.n || 'Commercial Bank';
+  const bankShortName = c.s || bank?.shortName || c.n || bankName.split(' ')[0];
+
   return {
     id: c.id,
-    userId: c.u || userId,
+    userId,
     accountNumber: c.a,
     bankCode: c.b,
-    bankName: c.n,
-    bankShortName: c.s || c.n.split(' ')[0],
+    bankName,
+    bankShortName,
     recipientName: c.r,
     nickname: c.k,
     lastUsedAt: c.t,
@@ -143,9 +148,9 @@ export function getSavedBeneficiaries(
     return (stateOrList as CompactBeneficiary[]).map((c) => fromCompactBeneficiary(c, userId));
   }
 
-  // CompactSessionPayload passed
+  // CompactSessionPayload passed: if ben is an array (even if empty []), preserve it!
   const compactBens = stateOrList.ben;
-  if (Array.isArray(compactBens) && compactBens.length > 0) {
+  if (Array.isArray(compactBens)) {
     return compactBens.map((c) => fromCompactBeneficiary(c, userId));
   }
 

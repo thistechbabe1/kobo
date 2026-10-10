@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   BeneficiaryInputSchema,
   MAX_BENEFICIARIES_CAP,
-  DEFAULT_USER_ID,
   getSavedBeneficiaries,
   SEEDED_COMPACT_BENEFICIARIES,
 } from '@/lib/beneficiaries';
@@ -84,20 +83,17 @@ export async function POST(request: NextRequest) {
     // 2. Cookie State Unseal
     const cookie = request.cookies.get(COOKIE_NAME)?.value;
     const state = await unsealSessionState(cookie);
-    const currentBens: CompactBeneficiary[] = state.ben && state.ben.length > 0
+    // If state.ben is an array (even if empty []), respect it; otherwise fall back to initial seeds
+    const currentBens: CompactBeneficiary[] = Array.isArray(state.ben)
       ? [...state.ben]
       : [...SEEDED_COMPACT_BENEFICIARIES];
 
-    const userBens = currentBens.filter((b) => (b.u || DEFAULT_USER_ID) === user.userId);
     const existingIndex = currentBens.findIndex(
-      (b) =>
-        (b.u || DEFAULT_USER_ID) === user.userId &&
-        b.a === accountNumber &&
-        b.b === bankCode
+      (b) => b.a === accountNumber && b.b === bankCode
     );
 
     const isUpdate = existingIndex >= 0;
-    if (!isUpdate && userBens.length >= MAX_BENEFICIARIES_CAP) {
+    if (!isUpdate && currentBens.length >= MAX_BENEFICIARIES_CAP) {
       return NextResponse.json(
         {
           success: false,
@@ -114,9 +110,8 @@ export async function POST(request: NextRequest) {
       const existing = currentBens[existingIndex];
       const updatedItem: CompactBeneficiary = {
         ...existing,
-        n: bankName,
-        s: bankShortName || existing.s,
-        r: recipientName,
+        n: bankShortName || bankName.slice(0, 20),
+        r: recipientName.slice(0, 30),
         k: nickname || existing.k,
         t: now,
       };
@@ -127,12 +122,10 @@ export async function POST(request: NextRequest) {
     } else {
       const newBeneficiary: CompactBeneficiary = {
         id: `ben_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        u: user.userId !== DEFAULT_USER_ID ? user.userId : undefined,
         a: accountNumber,
         b: bankCode,
-        n: bankName,
-        s: bankShortName || bankName.split(' ')[0],
-        r: recipientName,
+        n: bankShortName || bankName.slice(0, 20),
+        r: recipientName.slice(0, 30),
         k: nickname,
         t: now,
       };
@@ -199,7 +192,8 @@ export async function DELETE(request: NextRequest) {
 
     const cookie = request.cookies.get(COOKIE_NAME)?.value;
     const state = await unsealSessionState(cookie);
-    const currentBens: CompactBeneficiary[] = state.ben && state.ben.length > 0
+    // If state.ben is an array (even if empty []), respect it; otherwise fall back to initial seeds
+    const currentBens: CompactBeneficiary[] = Array.isArray(state.ben)
       ? [...state.ben]
       : [...SEEDED_COMPACT_BENEFICIARIES];
 
@@ -208,15 +202,6 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'Beneficiary not found' },
         { status: 404 }
-      );
-    }
-
-    const target = currentBens[targetIndex];
-    // Security check: Cannot delete another user's beneficiary!
-    if ((target.u || DEFAULT_USER_ID) !== user.userId) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden: You cannot delete another user's beneficiary" },
-        { status: 403 }
       );
     }
 

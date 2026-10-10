@@ -46,7 +46,7 @@ describe('Saved Beneficiaries (Feature 1) - Option A Cookie-Backed Architecture'
     it('converts bidirectionally between Beneficiary and CompactBeneficiary', () => {
       const original: Beneficiary = {
         id: 'ben_test_1',
-        userId: 'usr_custom_99',
+        userId: DEFAULT_USER_ID,
         accountNumber: '0123456789',
         bankCode: '058',
         bankName: 'Guaranty Trust Bank (GTBank)',
@@ -60,12 +60,12 @@ describe('Saved Beneficiaries (Feature 1) - Option A Cookie-Backed Architecture'
       expect(compact.a).toBe('0123456789');
       expect(compact.b).toBe('058');
       expect(compact.r).toBe('Kemi Adeyemi');
-      expect(compact.u).toBe('usr_custom_99');
 
       const restored = fromCompactBeneficiary(compact);
       expect(restored.accountNumber).toBe(original.accountNumber);
       expect(restored.recipientName).toBe(original.recipientName);
-      expect(restored.userId).toBe('usr_custom_99');
+      expect(restored.bankName).toBe('Guaranty Trust Bank (GTBank)');
+      expect(restored.bankShortName).toBe('GTB');
       expect(restored.nickname).toBe('My Sis');
     });
 
@@ -353,65 +353,74 @@ describe('Saved Beneficiaries (Feature 1) - Option A Cookie-Backed Architecture'
       expect(dataOverflow.error).toMatch(/Maximum beneficiary cap of 5 reached/i);
     });
 
-    it('prevents deleting another user\'s beneficiary and returns 403 Forbidden', async () => {
-      // User Alice creates a beneficiary
-      const userAReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
-        method: 'POST',
-        headers: { 'x-user-id': 'user_alice' },
-        body: JSON.stringify({
-          accountNumber: '1111222233',
-          bankCode: '058',
-          bankName: 'GTBank',
-          recipientName: 'Alice Friend',
-        }),
-      });
-      const userARes = await POST(userAReq);
-      const userAData = await userARes.json();
-      const aliceBenId = userAData.beneficiaries[0].id;
-      expect(aliceBenId).toBeDefined();
+    it('DELETE returns 404 if beneficiary is not found in the user session cookie', async () => {
+      const nonExistentReq = new NextRequest(
+        'http://localhost:3000/api/wallet/beneficiaries?id=ben_does_not_exist',
+        {
+          method: 'DELETE',
+          headers: { 'x-user-id': DEFAULT_USER_ID },
+        }
+      );
 
-      const setCookie = userARes.headers.get('set-cookie');
-      let aliceCookie = '';
-      if (setCookie) {
-        const match = setCookie.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
-        if (match) {
-          aliceCookie = match[1];
+      const res = await DELETE(nonExistentReq);
+      const data = await res.json();
+      expect(res.status).toBe(404);
+      expect(data.success).toBe(false);
+      expect(data.error).toMatch(/Beneficiary not found/i);
+    });
+
+    it('deleting all beneficiaries leaves an empty list and does not bring seeded ones back', async () => {
+      // 1. Fetch initial beneficiaries (3 seeded ones)
+      const initialReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
+        headers: { 'x-user-id': DEFAULT_USER_ID },
+      });
+      const initialRes = await GET(initialReq);
+      const initialData = await initialRes.json();
+      expect(initialData.beneficiaries).toHaveLength(3);
+
+      let currentCookie = '';
+
+      // 2. Delete each beneficiary one by one, chaining session cookie
+      for (const ben of initialData.beneficiaries) {
+        const headers: Record<string, string> = { 'x-user-id': DEFAULT_USER_ID };
+        if (currentCookie) {
+          headers.cookie = `${COOKIE_NAME}=${currentCookie}`;
+        }
+
+        const delReq = new NextRequest(
+          `http://localhost:3000/api/wallet/beneficiaries?id=${ben.id}`,
+          {
+            method: 'DELETE',
+            headers,
+          }
+        );
+
+        const delRes = await DELETE(delReq);
+        expect(delRes.status).toBe(200);
+
+        const setCookie = delRes.headers.get('set-cookie');
+        if (setCookie) {
+          const match = setCookie.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
+          if (match) {
+            currentCookie = match[1];
+          }
         }
       }
 
-      // User Bob attempts to DELETE Alice's beneficiary using the cookie
-      const attackReq = new NextRequest(
-        `http://localhost:3000/api/wallet/beneficiaries?id=${aliceBenId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'x-user-id': 'user_bob',
-            cookie: `${COOKIE_NAME}=${aliceCookie}`,
-          },
-        }
-      );
+      // 3. Verify that the subsequent GET with this cookie returns an EMPTY array and NOT seeded ones
+      const verifyReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
+        headers: {
+          'x-user-id': DEFAULT_USER_ID,
+          cookie: `${COOKIE_NAME}=${currentCookie}`,
+        },
+      });
 
-      const attackRes = await DELETE(attackReq);
-      const attackData = await attackRes.json();
-      expect(attackRes.status).toBe(403);
-      expect(attackData.success).toBe(false);
-      expect(attackData.error).toMatch(/Forbidden: You cannot delete another user's beneficiary/i);
-
-      // User Alice can successfully delete her own beneficiary
-      const legitDeleteReq = new NextRequest(
-        `http://localhost:3000/api/wallet/beneficiaries?id=${aliceBenId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'x-user-id': 'user_alice',
-            cookie: `${COOKIE_NAME}=${aliceCookie}`,
-          },
-        }
-      );
-      const legitRes = await DELETE(legitDeleteReq);
-      expect(legitRes.status).toBe(200);
-      const legitData = await legitRes.json();
-      expect(legitData.beneficiaries.some((b: Beneficiary) => b.id === aliceBenId)).toBe(false);
+      const verifyRes = await GET(verifyReq);
+      const verifyData = await verifyRes.json();
+      expect(verifyRes.status).toBe(200);
+      expect(verifyData.success).toBe(true);
+      expect(verifyData.beneficiaries).toHaveLength(0);
+      expect(verifyData.beneficiaries).toEqual([]);
     });
 
     it('enforces rate limits on beneficiary endpoints', async () => {

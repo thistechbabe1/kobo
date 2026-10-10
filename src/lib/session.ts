@@ -1,7 +1,7 @@
 import { EncryptJWT, jwtDecrypt } from 'jose';
 
 
-function getSecretKey(): { kty: 'oct'; k: string } {
+function getSecretKey(): Uint8Array {
   const secret = process.env.SESSION_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === 'production') {
@@ -12,22 +12,18 @@ function getSecretKey(): { kty: 'oct'; k: string } {
     }
     // Local dev fallback documented in .env.example when .env.local is not present
     const devFallback = 'dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWtleS1mb3ItZGV2ZWxvcG1lbnQtb25seTMyYnl0ZXM=';
-    const secretBytes = new TextEncoder().encode(devFallback).subarray(0, 32);
-    return {
-      kty: 'oct',
-      k: Buffer.from(secretBytes).toString('base64url'),
-    };
+    return new TextEncoder().encode(devFallback).subarray(0, 32);
   }
   
-  // Convert secret string into 32-byte Key and base64url encode for cross-realm JWK compatibility
+  // Convert secret string into 32-byte Key
   const encoder = new TextEncoder();
   const secretBytes = encoder.encode(secret);
-  const padded = new Uint8Array(32);
-  padded.set(secretBytes.subarray(0, 32));
-  return {
-    kty: 'oct',
-    k: Buffer.from(padded).toString('base64url'),
-  };
+  if (secretBytes.length < 32) {
+    const padded = new Uint8Array(32);
+    padded.set(secretBytes.subarray(0, 32));
+    return padded;
+  }
+  return secretBytes.subarray(0, 32);
 }
 
 export const COOKIE_NAME = 'kobo_state';
@@ -47,14 +43,13 @@ export interface AuthSessionPayload {
 }
 
 export interface CompactBeneficiary {
-  id: string; // Compact identifier e.g. 'b1'
+  id: string; // Compact identifier e.g. 'ben_1'
   a: string; // 10-digit NUBAN account number
   b: string; // Bank code (e.g. '058')
-  n: string; // Bank name
-  s?: string; // Bank short name (e.g. 'GTB')
+  n?: string; // Bank short name or abbreviation (e.g. 'GTB')
+  s?: string; // Optional short name
   r: string; // Recipient name
   k?: string; // Optional nickname
-  u?: string; // Optional owner user ID for scoping checks
   t: number; // lastUsedAt epoch timestamp
 }
 
@@ -161,7 +156,6 @@ export const DEFAULT_INITIAL_STATE: CompactSessionPayload = {
   loc: null,
   txs: [],
   ik: [],
-  ben: [],
 };
 
 /**
@@ -221,7 +215,7 @@ export async function unsealSessionState(token: string | undefined): Promise<Com
       loc: (payload.loc as number | null) ?? DEFAULT_INITIAL_STATE.loc,
       txs: Array.isArray(payload.txs) ? (payload.txs as CompactUserTx[]) : [],
       ik: Array.isArray(payload.ik) ? (payload.ik as string[]) : [],
-      ben: Array.isArray(payload.ben) ? (payload.ben as CompactBeneficiary[]) : [],
+      ben: Array.isArray(payload.ben) ? (payload.ben as CompactBeneficiary[]) : undefined,
     };
   } catch {
     return DEFAULT_INITIAL_STATE;
