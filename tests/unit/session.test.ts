@@ -69,12 +69,13 @@ describe('jose Encrypted Cookie State (lib/session)', () => {
       '99887766-5544-3322-1100-ffeeddccbbaa',
     ];
 
+    // Beneficiaries with 40-character recipient names and 4-char bank short code/name
     const worstCaseBens = Array.from({ length: 5 }, (_, i) => ({
       id: `ben_${i + 1}`,
       a: `012345678${i}`,
-      b: '058',
-      n: 'GTBank',
-      r: `Folashade Danjuma-Az ${i}`,
+      b: '214',
+      n: 'FCMB',
+      r: ('Oluwaseun Babatunde-Oladipo-Williams-' + (i + 1)).padEnd(40, 'X').slice(0, 40), // EXACTLY 40 chars
       t: 1758320000000 + i * 1000,
     }));
 
@@ -90,7 +91,12 @@ describe('jose Encrypted Cookie State (lib/session)', () => {
     const sealedToken = await sealSessionState(worstCasePayload);
     const sizeInBytes = new TextEncoder().encode(sealedToken).byteLength;
 
-    console.log(`[Cookie Size Measurement] Sealed JWE token size with 8 txs, 5 keys, and 5 beneficiaries: ${sizeInBytes} bytes`);
+    console.log(`[Cookie Size Measurement] Sealed JWE token size with 8 txs, 5 keys, and 5 beneficiaries (40-char names): ${sizeInBytes} bytes`);
+    console.log(`  - 8 Txs: narrations = ${worstCaseTxs[0].nar.length} chars, recipient names = ${worstCaseTxs[0].rec?.length} chars`);
+    console.log(`  - 5 IKs: length = ${worstCaseIks[0].length} chars UUIDs`);
+    console.log(`  - 5 Bens: recipient names = ${worstCaseBens[0].r.length} chars ('${worstCaseBens[0].r}')`);
+    console.log(`  - Margin under 3,072 bytes budget: ${3072 - sizeInBytes} bytes`);
+    console.log(`  - Margin under 4,096 bytes RFC 6265 limit: ${4096 - sizeInBytes} bytes`);
 
     // Must be strictly under 3,072 bytes (RFC 6265 cookie safety budget)
     expect(sizeInBytes).toBeLessThan(3072);
