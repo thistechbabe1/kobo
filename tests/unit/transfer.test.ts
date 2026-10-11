@@ -84,6 +84,52 @@ describe('Transfer Business Logic & Security (Feature 4)', () => {
       expect(result.updatedState.ik).toContain('idem-key-101');
     });
 
+    it('should strictly cap narration at 30 chars and recipient name at 20 chars in generated transaction', () => {
+      const state = createBaseState(20000000);
+      const longName = 'Oluwaseun Babatunde-Oladipo-Williams'; // > 20 chars
+      const longNarration = 'Payment for super extraordinary grocery items and supplies'; // > 30 chars
+
+      const resultWithLongNarration = processTransferDebit(state, {
+        accountNumber: '0123456789',
+        bankCode: '058',
+        bankName: 'GTBank',
+        recipientName: longName,
+        amountKobo: 100000,
+        narration: longNarration,
+        pin: DEMO_VALID_PIN,
+        idempotencyKey: 'idem-key-cap-test-1',
+        currentTime: BASE_TIME,
+      });
+
+      expect(resultWithLongNarration.status).toBe('SUCCESS');
+      if (resultWithLongNarration.status === 'SUCCESS') {
+        expect(resultWithLongNarration.tx.nar.length).toBeLessThanOrEqual(30);
+        expect(resultWithLongNarration.tx.nar).toBe(longNarration.slice(0, 30));
+        expect(resultWithLongNarration.tx.rec?.length).toBeLessThanOrEqual(20);
+        expect(resultWithLongNarration.tx.rec).toBe(longName.slice(0, 20));
+      }
+
+      // Default narration fallback ("Transfer to <recipient>") must also be capped at 30 chars
+      const resultWithFallbackNarration = processTransferDebit(state, {
+        accountNumber: '0123456789',
+        bankCode: '058',
+        bankName: 'GTBank',
+        recipientName: longName,
+        amountKobo: 100000,
+        pin: DEMO_VALID_PIN,
+        idempotencyKey: 'idem-key-cap-test-2',
+        currentTime: BASE_TIME,
+      });
+
+      expect(resultWithFallbackNarration.status).toBe('SUCCESS');
+      if (resultWithFallbackNarration.status === 'SUCCESS') {
+        expect(resultWithFallbackNarration.tx.nar.length).toBeLessThanOrEqual(30);
+        expect(resultWithFallbackNarration.tx.nar).toBe(`Transfer to ${longName}`.slice(0, 30));
+        expect(resultWithFallbackNarration.tx.rec?.length).toBeLessThanOrEqual(20);
+        expect(resultWithFallbackNarration.tx.rec).toBe(longName.slice(0, 20));
+      }
+    });
+
     it('should reject transfers where amount + fee exceeds available wallet balance', () => {
       const state = createBaseState(500000); // ₦5,000 balance
       const transferAmt = 500000; // ₦5,000 transfer has ₦10 fee -> total 501,000 Kobo required

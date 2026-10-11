@@ -340,7 +340,7 @@ export function processTransferDebit(
     typ: 'D',
     cat: 'TRF',
     amt: input.amountKobo,
-    nar: input.narration?.trim() || `Transfer to ${input.recipientName}`,
+    nar: (input.narration?.trim() || `Transfer to ${input.recipientName}`).slice(0, 30),
     rec: input.recipientName.slice(0, 20),
     bnk: input.bankCode.slice(0, 3),
     acc: input.accountNumber.slice(-4),
