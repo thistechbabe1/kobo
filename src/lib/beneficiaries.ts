@@ -39,7 +39,7 @@ export const BeneficiaryInputSchema = z.object({
   recipientName: z
     .string()
     .min(1, 'Recipient name is required')
-    .max(100, 'Recipient name must not exceed 100 characters'),
+    .max(40, 'Recipient name must not exceed 40 characters'),
   nickname: z
     .string()
     .max(50, 'Nickname must not exceed 50 characters')
@@ -93,7 +93,7 @@ export function toCompactBeneficiary(b: Beneficiary): CompactBeneficiary {
     b: b.bankCode,
     n: b.bankShortName || b.bankName.slice(0, 20),
     s: b.bankShortName,
-    r: b.recipientName.slice(0, 30),
+    r: b.recipientName.slice(0, 40),
     k: b.nickname,
     t: b.lastUsedAt,
   };
@@ -181,6 +181,7 @@ export function persistBeneficiary(
       ...existing,
       ...beneficiary,
       bankShortName: beneficiary.bankShortName || existing.bankShortName,
+      recipientName: beneficiary.recipientName.slice(0, 40),
       id: existing.id,
       userId: beneficiary.userId || existing.userId || DEFAULT_USER_ID,
       lastUsedAt: now,
@@ -197,6 +198,7 @@ export function persistBeneficiary(
     userId: beneficiary.userId || DEFAULT_USER_ID,
     bankShortName: beneficiary.bankShortName || beneficiary.bankName.split(' ')[0],
     ...beneficiary,
+    recipientName: beneficiary.recipientName.slice(0, 40),
     lastUsedAt: now,
   };
 

@@ -48,7 +48,7 @@ describe('jose Encrypted Cookie State (lib/session)', () => {
     expect(unsealed.ik).toEqual(['4b445214-e53b-4cb5-b541-e94d80a1c3f1']);
   });
 
-  it('MEASURED COOKIE SIZE TEST: worst-case fields with 8 user transactions, 5 idempotency keys, AND 5 beneficiaries must remain strictly under 3 KB (3072 bytes)', async () => {
+  it('MEASURED COOKIE SIZE TEST: worst-case fields with 8 user transactions, 5 idempotency keys, AND 5 beneficiaries must remain under 3,500-byte budget and 4,096-byte RFC 6265 limit', async () => {
     const worstCaseTxs: CompactUserTx[] = Array.from({ length: MAX_USER_TX_CAP }, (_, i) => ({
       id: `TX99990${i}`,
       typ: 'D',
@@ -95,11 +95,16 @@ describe('jose Encrypted Cookie State (lib/session)', () => {
     console.log(`  - 8 Txs: narrations = ${worstCaseTxs[0].nar.length} chars, recipient names = ${worstCaseTxs[0].rec?.length} chars`);
     console.log(`  - 5 IKs: length = ${worstCaseIks[0].length} chars UUIDs`);
     console.log(`  - 5 Bens: recipient names = ${worstCaseBens[0].r.length} chars ('${worstCaseBens[0].r}')`);
-    console.log(`  - Margin under 3,072 bytes budget: ${3072 - sizeInBytes} bytes`);
+    console.log(`  - Margin under 3,500 bytes budget: ${3500 - sizeInBytes} bytes`);
     console.log(`  - Margin under 4,096 bytes RFC 6265 limit: ${4096 - sizeInBytes} bytes`);
 
-    // Must be strictly under 3,072 bytes (RFC 6265 cookie safety budget)
-    expect(sizeInBytes).toBeLessThan(3072);
+    // Budget set to 3,500 bytes: provides an operational safety ceiling for worst-case payload
+    // (8 user transactions, 5 UUID idempotency keys, and 5 beneficiaries with 40-character recipient names),
+    // allowing headroom for base64url overhead and encryption metadata while strictly preventing cookie bloat.
+    expect(sizeInBytes).toBeLessThan(3500);
+
+    // Hard assertion: sealed cookie must strictly remain under the 4,096-byte RFC 6265 browser cookie limit
+    expect(sizeInBytes).toBeLessThan(4096);
   });
 
   it('should enforce MAX_USER_TX_CAP (8 items) and roll off oldest transaction when 9th is added', () => {

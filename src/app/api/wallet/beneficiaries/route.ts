@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       const updatedItem: CompactBeneficiary = {
         ...existing,
         n: bankShortName || bankName.slice(0, 20),
-        r: recipientName.slice(0, 30),
+        r: recipientName.slice(0, 40),
         k: nickname || existing.k,
         t: now,
       };
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
         a: accountNumber,
         b: bankCode,
         n: bankShortName || bankName.slice(0, 20),
-        r: recipientName.slice(0, 30),
+        r: recipientName.slice(0, 40),
         k: nickname,
         t: now,
       };

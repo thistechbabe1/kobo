@@ -12,6 +12,7 @@ import {
   Beneficiary,
   DEFAULT_USER_ID,
   MAX_BENEFICIARIES_CAP,
+  BeneficiaryInputSchema,
 } from '@/lib/beneficiaries';
 import { BeneficiaryRail } from '@/components/send/BeneficiaryRail';
 import { SendMoneyFlow } from '@/components/send/SendMoneyFlow';
@@ -136,6 +137,72 @@ describe('Saved Beneficiaries (Feature 1) - Option A Cookie-Backed Architecture'
         );
       }).toThrow(/Maximum beneficiary cap of 5 reached/i);
     });
+
+    it('caps recipientName at 40 characters in BeneficiaryInputSchema and rejects > 40 chars', () => {
+      const validPayload = {
+        accountNumber: '0123456789',
+        bankCode: '058',
+        bankName: 'GTBank',
+        recipientName: 'A'.repeat(40), // Exactly 40 chars
+      };
+      const validResult = BeneficiaryInputSchema.safeParse(validPayload);
+      expect(validResult.success).toBe(true);
+
+      const invalidPayload = {
+        ...validPayload,
+        recipientName: 'A'.repeat(41), // 41 chars exceeds cap
+      };
+      const invalidResult = BeneficiaryInputSchema.safeParse(invalidPayload);
+      expect(invalidResult.success).toBe(false);
+      if (!invalidResult.success) {
+        expect(invalidResult.error.issues[0].message).toMatch(/Recipient name must not exceed 40 characters/i);
+      }
+    });
+
+    it('truncates longer recipientName to 40 characters when saving a beneficiary', () => {
+      const longName = 'Oluwaseun Babatunde-Oladipo-Williams-LongExtraCharacters';
+      expect(longName.length).toBeGreaterThan(40);
+
+      // In persistBeneficiary (new item)
+      const savedNew = persistBeneficiary(
+        {
+          accountNumber: '1234567890',
+          bankCode: '058',
+          bankName: 'GTBank',
+          recipientName: longName,
+        },
+        []
+      );
+      expect(savedNew[0].recipientName).toBe(longName.slice(0, 40));
+      expect(savedNew[0].recipientName.length).toBe(40);
+
+      // In persistBeneficiary (update existing item)
+      const updatedExisting = persistBeneficiary(
+        {
+          accountNumber: '1234567890',
+          bankCode: '058',
+          bankName: 'GTBank',
+          recipientName: longName + 'Updated',
+        },
+        savedNew
+      );
+      expect(updatedExisting[0].recipientName).toBe((longName + 'Updated').slice(0, 40));
+      expect(updatedExisting[0].recipientName.length).toBe(40);
+
+      // In toCompactBeneficiary
+      const compact = toCompactBeneficiary({
+        id: 'ben_trunc_test',
+        userId: DEFAULT_USER_ID,
+        accountNumber: '1234567890',
+        bankCode: '058',
+        bankName: 'GTBank',
+        bankShortName: 'GTB',
+        recipientName: longName,
+        lastUsedAt: 1775736000000,
+      });
+      expect(compact.r).toBe(longName.slice(0, 40));
+      expect(compact.r.length).toBe(40);
+    });
   });
 
   describe('BeneficiaryRail Component', () => {
@@ -259,6 +326,23 @@ describe('Saved Beneficiaries (Feature 1) - Option A Cookie-Backed Architecture'
       expect(res2.status).toBe(400);
       expect(data2.success).toBe(false);
       expect(data2.error).toMatch(/Recipient name is required/i);
+
+      const tooLongNameReq = new NextRequest('http://localhost:3000/api/wallet/beneficiaries', {
+        method: 'POST',
+        headers: { 'x-user-id': 'usr_demo_user' },
+        body: JSON.stringify({
+          accountNumber: '0123456789',
+          bankCode: '058',
+          bankName: 'GTBank',
+          recipientName: 'A'.repeat(41), // Exceeds 40 chars cap
+        }),
+      });
+
+      const res3 = await POST(tooLongNameReq);
+      const data3 = await res3.json();
+      expect(res3.status).toBe(400);
+      expect(data3.success).toBe(false);
+      expect(data3.error).toMatch(/Recipient name must not exceed 40 characters/i);
     });
 
     it('POST saves new beneficiary into kobo_state cookie and returns Set-Cookie header', async () => {
