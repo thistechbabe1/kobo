@@ -1,13 +1,18 @@
 import { EncryptJWT, jwtDecrypt } from 'jose';
 
-// Secret key check - fail loudly at startup if missing
+
 function getSecretKey(): Uint8Array {
   const secret = process.env.SESSION_SECRET;
   if (!secret) {
-    throw new Error(
-      'CRITICAL: SESSION_SECRET environment variable is missing. ' +
-      'Please set SESSION_SECRET in .env.local (32-byte base64/hex key).'
-    );
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'CRITICAL: SESSION_SECRET environment variable is missing in production. ' +
+        'Please set SESSION_SECRET in your production deployment environment (32-byte base64/hex key).'
+      );
+    }
+    // Local dev fallback documented in .env.example when .env.local is not present
+    const devFallback = 'dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWtleS1mb3ItZGV2ZWxvcG1lbnQtb25seTMyYnl0ZXM=';
+    return new TextEncoder().encode(devFallback).subarray(0, 32);
   }
   
   // Convert secret string into 32-byte Key

@@ -120,10 +120,32 @@ describe('jose Encrypted Cookie State (lib/session)', () => {
     expect(result.updatedState.txs.some(t => t.id === `TX_OLD_${MAX_USER_TX_CAP - 1}`)).toBe(false);
   });
 
-  it('should fail loudly if SESSION_SECRET is missing', async () => {
+  it('should fail loudly in production if SESSION_SECRET is missing', async () => {
+    const prevEnv = process.env.NODE_ENV;
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
     delete process.env.SESSION_SECRET;
-    await expect(sealSessionState({ bal: 100, pin: 0, loc: null, txs: [], ik: [] })).rejects.toThrow(
-      'SESSION_SECRET environment variable is missing'
-    );
+
+    await expect(
+      sealSessionState({ bal: 100, pin: 0, loc: null, txs: [], ik: [] })
+    ).rejects.toThrow('SESSION_SECRET environment variable is missing in production');
+
+    (process.env as Record<string, string | undefined>).NODE_ENV = prevEnv;
+    process.env.SESSION_SECRET = TEST_SECRET;
+  });
+
+  it('should fall back to development key when SESSION_SECRET is missing in non-production', async () => {
+    const prevEnv = process.env.NODE_ENV;
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'development';
+    delete process.env.SESSION_SECRET;
+
+    const sealed = await sealSessionState({ bal: 100, pin: 0, loc: null, txs: [], ik: [] });
+    expect(typeof sealed).toBe('string');
+    expect(sealed.length).toBeGreaterThan(0);
+
+    const unsealed = await unsealSessionState(sealed);
+    expect(unsealed.bal).toBe(100);
+
+    (process.env as Record<string, string | undefined>).NODE_ENV = prevEnv;
+    process.env.SESSION_SECRET = TEST_SECRET;
   });
 });
