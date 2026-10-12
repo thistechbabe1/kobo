@@ -14,7 +14,7 @@ import {
   unsealSessionState,
 } from '@/lib/session';
 import {
-  checkRateLimit,
+  checkRateLimitDetailed,
   getSessionUser,
 } from '@/lib/beneficiaries-server';
 
@@ -28,10 +28,21 @@ export async function GET(request: NextRequest) {
   }
 
   // Rate limit by user ID
-  if (!checkRateLimit(`GET:${user.userId}`)) {
+  const getRateLimit = checkRateLimitDetailed(`GET:${user.userId}`);
+  if (!getRateLimit.success) {
     return NextResponse.json(
-      { success: false, error: 'Rate limit exceeded. Please wait a moment before trying again.' },
-      { status: 429 }
+      {
+        success: false,
+        error: 'Rate limit exceeded. Please wait a moment before trying again.',
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: getRateLimit.retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(getRateLimit.retryAfterSeconds),
+        },
+      }
     );
   }
 
@@ -55,10 +66,21 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limit by user ID
-  if (!checkRateLimit(`POST:${user.userId}`)) {
+  const postRateLimit = checkRateLimitDetailed(`POST:${user.userId}`);
+  if (!postRateLimit.success) {
     return NextResponse.json(
-      { success: false, error: 'Rate limit exceeded. Please wait a moment before trying again.' },
-      { status: 429 }
+      {
+        success: false,
+        error: 'Rate limit exceeded. Please wait a moment before trying again.',
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: postRateLimit.retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(postRateLimit.retryAfterSeconds),
+        },
+      }
     );
   }
 
@@ -173,10 +195,21 @@ export async function DELETE(request: NextRequest) {
   }
 
   // Rate limit by user ID
-  if (!checkRateLimit(`DELETE:${user.userId}`)) {
+  const deleteRateLimit = checkRateLimitDetailed(`DELETE:${user.userId}`);
+  if (!deleteRateLimit.success) {
     return NextResponse.json(
-      { success: false, error: 'Rate limit exceeded. Please wait a moment before trying again.' },
-      { status: 429 }
+      {
+        success: false,
+        error: 'Rate limit exceeded. Please wait a moment before trying again.',
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: deleteRateLimit.retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(deleteRateLimit.retryAfterSeconds),
+        },
+      }
     );
   }
 

@@ -8,6 +8,7 @@ import {
   unsealSessionState,
 } from '@/lib/session';
 import { TransferInputSchema } from '@/lib/validations';
+import { checkRateLimitDetailed } from '@/lib/rate-limit';
 
 // In-memory set for locking concurrent in-flight requests with identical idempotency keys
 const inFlightKeys = new Set<string>();
@@ -26,6 +27,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Rate limit: max 20 transfer attempts per minute per authenticated user
+    const rateLimit = checkRateLimitDetailed(`transfer:${authSession.sub}`, 20, 60000);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        {
+          error: 'Transfer rate limit exceeded. Please wait before attempting another transfer.',
+          code: 'RATE_LIMIT_EXCEEDED',
+          retryAfter: rateLimit.retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfterSeconds),
+          },
+        }
+      );
+    }
+
     // 2. Parse and Validate Request Payload via Zod
     const rawBody = await request.json().catch(() => null);
     const parsed = TransferInputSchema.safeParse(rawBody);
@@ -37,7 +56,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
     const {
       accountNumber,
       bankCode,

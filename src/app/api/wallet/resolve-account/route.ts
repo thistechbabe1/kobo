@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ResolveAccountInputSchema } from '@/lib/validations';
+import { checkRateLimitDetailed, getClientIp } from '@/lib/rate-limit';
 
 const FIRST_NAMES = [
   'Chukwudi', 'Olumide', 'Zainab', 'Fatima', 'Ngozi',
@@ -22,6 +23,25 @@ function resolveMockName(accountNumber: string): string {
 }
 
 export async function POST(request: Request) {
+  // Rate limit: max 30 account resolution lookups per minute per IP
+  const clientIp = getClientIp(request);
+  const rateLimit = checkRateLimitDetailed(`resolve:${clientIp}`, 30, 60000);
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      {
+        error: 'Too many account lookup requests. Please wait before trying again.',
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: rateLimit.retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimit.retryAfterSeconds),
+        },
+      }
+    );
+  }
+
   try {
     const rawBody = await request.json().catch(() => null);
     const parsed = ResolveAccountInputSchema.safeParse(rawBody);
