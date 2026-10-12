@@ -58,8 +58,8 @@ export const TransferInputSchema = z
       .trim()
       .min(1, 'Recipient name is required')
       .max(100, 'Recipient name must not exceed 100 characters'),
-    amount: z.number().int().positive('Transfer amount must be a positive integer in Kobo').optional(),
-    amountKobo: z.number().int().positive('Transfer amount must be a positive integer in Kobo').optional(),
+    amount: z.number().int('Transfer amount must be an integer in Kobo').positive('Transfer amount must be a positive integer in Kobo').optional(),
+    amountKobo: z.number().int('Transfer amount must be an integer in Kobo').positive('Transfer amount must be a positive integer in Kobo').optional(),
     narration: z
       .string()
       .trim()

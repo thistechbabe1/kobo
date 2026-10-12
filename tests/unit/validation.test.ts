@@ -123,6 +123,34 @@ describe('Zod Validation on API Routes', () => {
       expect(data.error).toMatch(/Transfer amount must be a positive integer in Kobo/i);
     });
 
+    it('returns 400 when amount is a decimal instead of integer Kobo', async () => {
+      const authToken = await sealAuthToken({
+        sub: 'usr_test_001',
+        email: 'test@kobo.demo',
+        name: 'Test User',
+      });
+
+      const req = new NextRequest('http://localhost:3000/api/wallet/transfer', {
+        method: 'POST',
+        headers: {
+          cookie: `${AUTH_COOKIE_NAME}=${authToken}`,
+        },
+        body: JSON.stringify({
+          accountNumber: '0123456789',
+          bankCode: '058',
+          recipientName: 'Chioma Adebayo',
+          amountKobo: 5000.75, // Invalid: decimal Kobo
+          pin: '1234',
+          idempotencyKey: 'idem-key-test-decimal',
+        }),
+      });
+
+      const res = await transferPOST(req);
+      const data = await res.json();
+      expect(res.status).toBe(400);
+      expect(data.error).toMatch(/must be a.*integer/i);
+    });
+
     it('returns 400 when idempotencyKey is missing', async () => {
       const authToken = await sealAuthToken({
         sub: 'usr_test_001',
