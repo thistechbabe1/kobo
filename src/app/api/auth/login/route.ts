@@ -1,10 +1,21 @@
 import { NextResponse } from 'next/server';
 import { AUTH_COOKIE_NAME, sealAuthToken } from '@/lib/session';
+import { LoginInputSchema } from '@/lib/validations';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { email, password } = body;
+    const rawBody = await request.json().catch(() => null);
+    const parsed = LoginInputSchema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      const errorMsg = parsed.error.issues[0]?.message || 'Invalid login request';
+      return NextResponse.json(
+        { error: errorMsg, code: 'INVALID_INPUT', issues: parsed.error.issues },
+        { status: 400 }
+      );
+    }
+
+    const { email, password } = parsed.data;
 
     // Server-side credential check
     const isDemoQuickLogin = email === 'babatunde@kobo.demo';

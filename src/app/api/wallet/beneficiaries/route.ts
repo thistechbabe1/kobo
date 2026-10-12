@@ -5,6 +5,7 @@ import {
   getSavedBeneficiaries,
   SEEDED_COMPACT_BENEFICIARIES,
 } from '@/lib/beneficiaries';
+import { DeleteBeneficiaryQuerySchema } from '@/lib/validations';
 import {
   COOKIE_NAME,
   CompactBeneficiary,
@@ -181,14 +182,19 @@ export async function DELETE(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const queryParsed = DeleteBeneficiaryQuerySchema.safeParse({
+      id: searchParams.get('id'),
+    });
 
-    if (!id) {
+    if (!queryParsed.success) {
+      const errorMsg = queryParsed.error.issues[0]?.message || 'Beneficiary ID is required';
       return NextResponse.json(
-        { success: false, error: 'Beneficiary ID is required' },
+        { success: false, error: errorMsg, issues: queryParsed.error.issues },
         { status: 400 }
       );
     }
+
+    const { id } = queryParsed.data;
 
     const cookie = request.cookies.get(COOKIE_NAME)?.value;
     const state = await unsealSessionState(cookie);
