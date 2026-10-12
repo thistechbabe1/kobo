@@ -86,17 +86,24 @@ export function resetRateLimitStore(): void {
 }
 
 /**
- * Extracts a best-effort client IP from headers.
+ * Extracts the trusted client IP from request headers.
+ * Prioritizes Vercel's trusted `x-real-ip` header. If missing, takes the LAST entry
+ * in `x-forwarded-for` (appended by the closest trusted proxy) to prevent spoofing
+ * from client-injected leading IPs. Defaults to '127.0.0.1'.
  */
 export function getClientIp(request: Request | NextRequest): string {
-  const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) {
-    const firstIp = forwarded.split(',')[0].trim();
-    if (firstIp) return firstIp;
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp && realIp.trim()) {
+    return realIp.trim();
   }
 
-  const realIp = request.headers.get('x-real-ip');
-  if (realIp) return realIp.trim();
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    const parts = forwarded.split(',').map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 0) {
+      return parts[parts.length - 1];
+    }
+  }
 
   return '127.0.0.1';
 }

@@ -4,9 +4,19 @@ import { LoginInputSchema } from '@/lib/validations';
 import { checkRateLimitDetailed, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
-  // Rate limit: max 10 login attempts per minute per IP
+  let body: { email?: string; password?: string } | null = null;
+  try {
+    body = await request.clone().json();
+  } catch {
+    // If body cannot be cloned/parsed, rate limit by IP alone
+  }
+
   const clientIp = getClientIp(request);
-  const rateLimit = checkRateLimitDetailed(`login:${clientIp}`, 10, 60000);
+  const normalizedEmail = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : 'unknown';
+  const rateLimitKey = `login:${clientIp}:${normalizedEmail}`;
+
+  // Rate limit: max 10 login attempts per minute per IP + email
+  const rateLimit = checkRateLimitDetailed(rateLimitKey, 10, 60000);
   if (!rateLimit.success) {
     return NextResponse.json(
       {
@@ -24,7 +34,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const rawBody = await request.json().catch(() => null);
+    const rawBody = body ?? (await request.json().catch(() => null));
     const parsed = LoginInputSchema.safeParse(rawBody);
 
     if (!parsed.success) {
