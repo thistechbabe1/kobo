@@ -43,3 +43,7 @@ next-env.d.ts
 # preview scripts
 scripts/capture-feature4-screenshots.mjs
 scripts/capture-fixes-screenshots.mjs
+
+# playwright
+test-results/
+playwright-report/
