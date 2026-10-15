@@ -23,9 +23,20 @@ function resolveMockName(accountNumber: string): string {
 }
 
 export async function POST(request: Request) {
-  // Rate limit: max 30 account resolution lookups per minute per IP
   const clientIp = getClientIp(request);
-  const rateLimit = checkRateLimitDetailed(`resolve:${clientIp}`, 30, 60000);
+
+  if (process.env.NODE_ENV === 'production' && clientIp === 'unknown') {
+    return NextResponse.json(
+      {
+        error: 'Unable to determine client IP address from trusted headers. Request rejected.',
+        code: 'IP_REQUIRED',
+      },
+      { status: 429 }
+    );
+  }
+
+  const limitMax = clientIp === 'unknown' ? 100 : 30;
+  const rateLimit = checkRateLimitDetailed(`resolve:${clientIp}`, limitMax, 60000);
   if (!rateLimit.success) {
     return NextResponse.json(
       {

@@ -27,9 +27,34 @@ export interface RateLimitResult {
 const rateLimitStore = new Map<string, RateLimitRecord>();
 
 /**
+ * Evicts expired entries from the in-memory store to prevent memory leaks.
+ * Can be called explicitly or automatically during rate limit checks.
+ *
+ * @param now Epoch timestamp in milliseconds (defaults to Date.now())
+ * @returns Number of expired entries evicted
+ */
+export function evictExpiredEntries(now: number = Date.now()): number {
+  let evictedCount = 0;
+  for (const [key, record] of rateLimitStore.entries()) {
+    if (now >= record.resetAt) {
+      rateLimitStore.delete(key);
+      evictedCount++;
+    }
+  }
+  return evictedCount;
+}
+
+/**
+ * Returns current count of active entries in the in-memory store (for testing/diagnostics).
+ */
+export function getRateLimitStoreSize(): number {
+  return rateLimitStore.size;
+}
+
+/**
  * Checks rate limit for a given identifier key.
  *
- * @param key Unique key to rate limit (e.g. `login:127.0.0.1` or `transfer:usr_123`)
+ * @param key Unique key to rate limit (e.g. `login:ip:127.0.0.1` or `transfer:usr_123`)
  * @param limit Maximum allowed requests per window
  * @param windowMs Time window in milliseconds (default: 60,000ms = 1 minute)
  */
@@ -39,6 +64,12 @@ export function checkRateLimitDetailed(
   windowMs = 60000
 ): RateLimitResult {
   const now = Date.now();
+
+  // Opportunistic garbage collection of expired entries when the store grows
+  if (rateLimitStore.size > 20) {
+    evictExpiredEntries(now);
+  }
+
   const record = rateLimitStore.get(key);
 
   if (!record || now >= record.resetAt) {
@@ -85,9 +116,6 @@ export function resetRateLimitStore(): void {
   rateLimitStore.clear();
 }
 
-/** Monotonic counter used to generate unique fallback IPs when no header is present. */
-let fallbackCounter = 0;
-
 /**
  * Extracts the trusted client IP from request headers.
  *
@@ -95,9 +123,8 @@ let fallbackCounter = 0;
  *   1. Vercel's trusted `x-real-ip` header (set by edge ingress, cannot be spoofed).
  *   2. The LAST entry in `x-forwarded-for` (appended by the closest trusted proxy),
  *      preventing spoofing from client-injected leading IPs.
- *   3. A unique per-request fallback `unknown-<counter>` so that headerless requests
- *      are never lumped into one shared bucket. This covers direct-access or test
- *      environments where no proxy sets IP headers.
+ *   3. Shared fallback: 'unknown' (with a generous limit in non-production, or rejected
+ *      with 429 in production environments where trusted IP headers are required).
  */
 export function getClientIp(request: Request | NextRequest): string {
   const realIp = request.headers.get('x-real-ip');
@@ -113,8 +140,5 @@ export function getClientIp(request: Request | NextRequest): string {
     }
   }
 
-  // Each headerless request gets a unique key so rate limits are never
-  // shared across unrelated callers that happen to lack proxy headers.
-  fallbackCounter += 1;
-  return `unknown-${fallbackCounter}`;
+  return 'unknown';
 }

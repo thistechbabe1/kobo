@@ -4,28 +4,20 @@ import { LoginInputSchema } from '@/lib/validations';
 import { checkRateLimitDetailed, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
-  // 1. Dual Rate Limiting: IP-level + (IP + lowercased email)
   const clientIp = getClientIp(request);
 
-  // 1a. IP-level rate limit: max 10 attempts per minute per IP
-  const ipRateLimit = checkRateLimitDetailed(`login:${clientIp}`, 10, 60000);
-  if (!ipRateLimit.success) {
+  // In production, reject request when no trusted IP can be determined
+  if (process.env.NODE_ENV === 'production' && clientIp === 'unknown') {
     return NextResponse.json(
       {
-        error: 'Too many login attempts from this network. Please wait before trying again.',
-        code: 'RATE_LIMIT_EXCEEDED',
-        retryAfter: ipRateLimit.retryAfterSeconds,
+        error: 'Unable to determine client IP address from trusted headers. Request rejected.',
+        code: 'IP_REQUIRED',
       },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(ipRateLimit.retryAfterSeconds),
-        },
-      }
+      { status: 429 }
     );
   }
 
-  // 2. Wrap body parse in try/catch for key extraction and validation
+  // 1. Safe body parse in try/catch for rate limit keying and validation
   let rawBody: unknown = null;
   let isJsonParseError = false;
   try {
@@ -43,25 +35,63 @@ export async function POST(request: Request) {
 
   const typedBody = (typeof rawBody === 'object' && rawBody !== null ? rawBody : null) as { email?: unknown } | null;
   const rawEmail = typeof typedBody?.email === 'string' ? typedBody.email : '';
-  const normalizedEmail = rawEmail ? rawEmail.trim().toLowerCase() : 'unknown';
-  const emailRateLimitKey = `login:${clientIp}:${normalizedEmail}`;
+  const normalizedEmail = rawEmail ? rawEmail.trim().toLowerCase() : '';
 
-  // 1b. IP + lowercased email rate limit: max 10 attempts per minute. Both IP and IP+email limits must pass!
-  const emailRateLimit = checkRateLimitDetailed(emailRateLimitKey, 10, 60000);
-  if (!emailRateLimit.success) {
+  // Limit 1: IP-level rate limit: 40/min (or generous 100/min in dev when IP is unknown)
+  const ipLimitMax = clientIp === 'unknown' ? 100 : 40;
+  const ipRateLimit = checkRateLimitDetailed(`login:ip:${clientIp}`, ipLimitMax, 60000);
+  if (!ipRateLimit.success) {
     return NextResponse.json(
       {
-        error: 'Too many login attempts for this account. Please wait before trying again.',
+        error: 'Too many login attempts from this network. Please wait before trying again.',
         code: 'RATE_LIMIT_EXCEEDED',
-        retryAfter: emailRateLimit.retryAfterSeconds,
+        retryAfter: ipRateLimit.retryAfterSeconds,
       },
       {
         status: 429,
         headers: {
-          'Retry-After': String(emailRateLimit.retryAfterSeconds),
+          'Retry-After': String(ipRateLimit.retryAfterSeconds),
         },
       }
     );
+  }
+
+  // Limit 2: Email-only limit across all IPs: 15/min
+  if (normalizedEmail) {
+    const emailOnlyRateLimit = checkRateLimitDetailed(`login:email:${normalizedEmail}`, 15, 60000);
+    if (!emailOnlyRateLimit.success) {
+      return NextResponse.json(
+        {
+          error: 'Too many login attempts for this account across networks. Please wait before trying again.',
+          code: 'RATE_LIMIT_EXCEEDED',
+          retryAfter: emailOnlyRateLimit.retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(emailOnlyRateLimit.retryAfterSeconds),
+          },
+        }
+      );
+    }
+
+    // Limit 3: IP + lowercased email limit: 8/min
+    const ipEmailRateLimit = checkRateLimitDetailed(`login:ip_email:${clientIp}:${normalizedEmail}`, 8, 60000);
+    if (!ipEmailRateLimit.success) {
+      return NextResponse.json(
+        {
+          error: 'Too many login attempts for this account from this network. Please wait before trying again.',
+          code: 'RATE_LIMIT_EXCEEDED',
+          retryAfter: ipEmailRateLimit.retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(ipEmailRateLimit.retryAfterSeconds),
+          },
+        }
+      );
+    }
   }
 
   // Malformed JSON must reach validation and return 400 with code INVALID_INPUT, never 500

@@ -103,4 +103,62 @@ test.describe('End-to-End Send Flow (feature/e2e-send-flow)', () => {
     await expect(page.locator('text=Simulated Reference')).toBeVisible();
     await expect(page.locator('[data-testid="send-another-btn"]')).toBeVisible();
   });
+
+  test('double-clicking confirm button sends exactly one transfer request (prevents double-submit)', async ({
+    page,
+  }) => {
+    // Intercept and count transfer network requests
+    let transferRequestCount = 0;
+    page.on('request', (req) => {
+      if (req.url().includes('/api/wallet/transfer') && req.method() === 'POST') {
+        transferRequestCount++;
+      }
+    });
+
+    // 1. Visit Login Page and Authenticate
+    await page.goto('/login');
+    const demoButton = page.locator('button:has-text("Try Demo Account")');
+    if (await demoButton.isVisible()) {
+      await demoButton.click();
+    } else {
+      await page.fill('input[type="email"]', 'babatunde@kobo.demo');
+      await page.fill('input[type="password"]', 'demopassword123');
+      await page.click('button:has-text("Sign In to Wallet")');
+    }
+    await page.waitForURL('**/dashboard', { timeout: 15000 });
+
+    // 2. Navigate to Send Flow
+    await page.goto('/send');
+    await page.waitForURL('**/send');
+
+    // Step 1: Recipient
+    await page.locator('input[aria-label="10-Digit NUBAN Account Number"]').fill('0123456789');
+    await expect(page.locator('text=Chioma Adebayo')).toBeVisible({ timeout: 10000 });
+    await page.locator('button:has-text("Continue to Amount")').click();
+
+    // Step 2: Amount
+    await page.locator('input[aria-label="Transfer Amount in Naira"]').fill('2500');
+    await page.locator('button:has-text("Review Details")').click();
+
+    // Step 3: Review
+    await page.locator('button:has-text("Authorize with PIN")').click();
+
+    // Step 4: PIN Entry
+    await page.locator('button:text-is("1")').click();
+    await page.locator('button:text-is("2")').click();
+    await page.locator('button:text-is("3")').click();
+    await page.locator('button:text-is("4")').click();
+
+    // Rapidly double-click confirm button
+    const confirmBtn = page.locator('[data-testid="confirm-transfer-btn"]');
+    await expect(confirmBtn).toBeEnabled();
+    await confirmBtn.dblclick();
+
+    // Step 5: Verify success screen
+    await expect(page.locator('[data-testid="send-step-5"]')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('text=Transfer Successful')).toBeVisible();
+
+    // Assert that EXACTLY one transfer request was dispatched over the wire
+    expect(transferRequestCount).toBe(1);
+  });
 });
