@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { ResolveAccountInputSchema } from '@/lib/validations';
+import { checkRateLimitDetailed, getClientIp } from '@/lib/rate-limit';
 
 const FIRST_NAMES = [
   'Chukwudi', 'Olumide', 'Zainab', 'Fatima', 'Ngozi',
@@ -21,32 +23,50 @@ function resolveMockName(accountNumber: string): string {
 }
 
 export async function POST(request: Request) {
+  const clientIp = getClientIp(request);
+
+  if (process.env.VERCEL && clientIp === 'unknown') {
+    return NextResponse.json(
+      {
+        error: 'Unable to determine client IP address from trusted headers. Request rejected.',
+        code: 'IP_REQUIRED',
+      },
+      { status: 429 }
+    );
+  }
+
+  const limitMax = clientIp === 'unknown' ? 100 : 30;
+  const rateLimit = checkRateLimitDetailed(`resolve:${clientIp}`, limitMax, 60000);
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      {
+        error: 'Too many account lookup requests. Please wait before trying again.',
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: rateLimit.retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimit.retryAfterSeconds),
+        },
+      }
+    );
+  }
+
   try {
-    const body = await request.json();
-    const { accountNumber, bankCode } = body;
+    const rawBody = await request.json().catch(() => null);
+    const parsed = ResolveAccountInputSchema.safeParse(rawBody);
 
-    if (!accountNumber || typeof accountNumber !== 'string') {
+    if (!parsed.success) {
+      const errorMsg = parsed.error.issues[0]?.message || 'Invalid account details';
       return NextResponse.json(
-        { error: 'Account number is required', code: 'INVALID_ACCOUNT' },
+        { error: errorMsg, code: 'INVALID_INPUT', issues: parsed.error.issues },
         { status: 400 }
       );
     }
 
+    const { accountNumber, bankCode } = parsed.data;
     const cleanAccount = accountNumber.trim();
-
-    if (!/^\d{10}$/.test(cleanAccount)) {
-      return NextResponse.json(
-        { error: 'Account number must be exactly 10 digits', code: 'INVALID_ACCOUNT_FORMAT' },
-        { status: 400 }
-      );
-    }
-
-    if (!bankCode) {
-      return NextResponse.json(
-        { error: 'Bank selection is required', code: 'INVALID_BANK' },
-        { status: 400 }
-      );
-    }
 
     // Deterministic simulation trigger: 0000000003 is unregistered / not found
     if (cleanAccount === '0000000003') {

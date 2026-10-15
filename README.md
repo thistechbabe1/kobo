@@ -58,11 +58,20 @@ Every text/background pair meets W3C relative luminance contrast requirements:
 
 ---
 
-## ⚠️ Demo Limitations
+## Known Limitations & Architecture Notes
 
-- **Idempotency Keys in Session Cookie**: Idempotency keys are held in the sealed session cookie (`kobo_state` ring-buffer), so they cover resubmits after a response arrives but not a lost response or truly simultaneous requests across distributed devices. A production system would store and lock them server-side (e.g., Redis or a relational database with transactional isolation).
-- **CBN Regulatory Fee Tiers**: Transfer fee tiers are modeled directly on the live Central Bank of Nigeria (CBN) *Guide to Charges* regulatory search (Free for transfers below ₦5,000; ₦10 for ₦5,000–₦50,000; ₦50 for transfers above ₦50,000).
-- **Simulated Infrastructure**: Destination commercial banks, NIP account resolution, and transaction PIN verification (demo PIN `1234`) are simulated in-memory and in encrypted cookies without live banking switches or real money.
+- **Email-Only Rate Limiting & Account Lockout DoS Trade-Off**:
+  The login route enforces a cross-network limit of 15 failed login attempts per minute for a given email address to mitigate distributed credential stuffing. Counting only failed attempts prevents legitimate logins from consuming the quota, but introduces an inherent trade-off: an attacker intentionally submitting 15 invalid passwords can temporarily lock a victim out. In production, this trade-off is resolved using progressive CAPTCHAs, step-up MFA/OTP challenges, and risk-based anomaly detection rather than a hard lockout.
+- **PIN Lockout & State Persistence in Sealed Cookie**:
+  The transaction PIN attempt count and 15-minute security lockout timestamp (`pin` and `loc`) live in the cryptographically sealed, HTTP-only `kobo_state` session cookie. Because state is held on the client, the lockout can theoretically be reset by clearing browser cookies or replaying an old one. In a production system, PIN authentication attempts, lockouts, and wallet balances would be held in authoritative server-side state (such as Redis or a database with atomic transactional isolation).
+- **Per-Instance In-Memory Rate Limiting**:
+  API rate limits (for login, transfer, and account resolution) are maintained in-memory on the active server process. In a distributed multi-instance or serverless edge deployment (such as Vercel Edge/Serverless), memory is not shared across instances. Production deployments would back the rate limiter with server-side distributed state (such as Redis or a database).
+- **Idempotency Keys in Session Cookie**:
+  Idempotency keys are held in the sealed session cookie (`kobo_state` ring-buffer), covering resubmits after a response arrives. True distributed concurrency deduplication requires server-side distributed atomic locks (e.g. Redis SETNX / PostgreSQL advisory locks).
+- **CBN Regulatory Fee Tiers**:
+  Transfer fee tiers are modeled directly on the live Central Bank of Nigeria (CBN) *Guide to Charges* regulatory search (Free for transfers below ₦5,000; ₦10 for ₦5,000–₦50,000; ₦50 for transfers above ₦50,000).
+- **Simulated Infrastructure**:
+  Destination commercial banks, NIP account resolution, and transaction PIN verification (demo PIN `1234`) are simulated in-memory and in encrypted cookies without live banking switches or real money.
 
 ---
 

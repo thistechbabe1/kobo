@@ -7,6 +7,8 @@ import {
   unsealAuthToken,
   unsealSessionState,
 } from '@/lib/session';
+import { TransferInputSchema } from '@/lib/validations';
+import { checkRateLimitDetailed } from '@/lib/rate-limit';
 
 // In-memory set for locking concurrent in-flight requests with identical idempotency keys
 const inFlightKeys = new Set<string>();
@@ -25,8 +27,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Parse and Validate Request Payload
-    const body = await request.json();
+    // Rate limit: max 20 transfer attempts per minute per authenticated user
+    const rateLimit = checkRateLimitDetailed(`transfer:${authSession.sub}`, 20, 60000);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        {
+          error: 'Transfer rate limit exceeded. Please wait before attempting another transfer.',
+          code: 'RATE_LIMIT_EXCEEDED',
+          retryAfter: rateLimit.retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfterSeconds),
+          },
+        }
+      );
+    }
+
+    // 2. Parse and Validate Request Payload via Zod
+    const rawBody = await request.json().catch(() => null);
+    const parsed = TransferInputSchema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      const errorMsg = parsed.error.issues[0]?.message || 'Invalid transfer payload';
+      return NextResponse.json(
+        { error: errorMsg, code: 'INVALID_INPUT', issues: parsed.error.issues },
+        { status: 400 }
+      );
+    }
     const {
       accountNumber,
       bankCode,
@@ -37,51 +66,9 @@ export async function POST(request: NextRequest) {
       narration,
       pin,
       idempotencyKey,
-    } = body;
+    } = parsed.data;
 
-    const transferAmountKobo = typeof rawAmountKobo === 'number' ? rawAmountKobo : typeof amount === 'number' ? amount : 0;
-
-    if (!accountNumber || !/^\d{10}$/.test(String(accountNumber).trim())) {
-      return NextResponse.json(
-        { error: 'Valid 10-digit account number is required', code: 'INVALID_ACCOUNT' },
-        { status: 400 }
-      );
-    }
-
-    if (!bankCode || typeof bankCode !== 'string') {
-      return NextResponse.json(
-        { error: 'Bank selection is required', code: 'INVALID_BANK' },
-        { status: 400 }
-      );
-    }
-
-    if (!recipientName || typeof recipientName !== 'string') {
-      return NextResponse.json(
-        { error: 'Recipient name is required', code: 'INVALID_RECIPIENT' },
-        { status: 400 }
-      );
-    }
-
-    if (!transferAmountKobo || transferAmountKobo <= 0 || !Number.isInteger(transferAmountKobo)) {
-      return NextResponse.json(
-        { error: 'Transfer amount must be a positive integer in Kobo', code: 'INVALID_AMOUNT' },
-        { status: 400 }
-      );
-    }
-
-    if (!pin || typeof pin !== 'string' || !/^\d{4}$/.test(pin)) {
-      return NextResponse.json(
-        { error: 'PIN must be exactly 4 digits', code: 'INVALID_PIN_FORMAT' },
-        { status: 400 }
-      );
-    }
-
-    if (!idempotencyKey || typeof idempotencyKey !== 'string') {
-      return NextResponse.json(
-        { error: 'Idempotency-Key is required to prevent duplicate transfers', code: 'MISSING_IDEMPOTENCY_KEY' },
-        { status: 400 }
-      );
-    }
+    const transferAmountKobo = typeof rawAmountKobo === 'number' ? rawAmountKobo : (amount as number);
 
     // Concurrency Lock on the specific Idempotency Key
     if (inFlightKeys.has(idempotencyKey)) {
@@ -98,6 +85,12 @@ export async function POST(request: NextRequest) {
     inFlightKeys.add(idempotencyKey);
 
     // 3. Deterministic Simulation Triggers
+    // E2E_DETERMINISTIC flag is ignored ONLY when deployed to Vercel production
+    const isE2EDeterministic =
+      process.env.E2E_DETERMINISTIC === '1' &&
+      process.env.VERCEL_ENV !== 'production';
+    void isE2EDeterministic; // available for deterministic test overrides
+
     const cleanAccount = String(accountNumber).trim();
 
     // Trigger: 0000000001 -> NIP Network Timeout (504 Gateway Timeout)
