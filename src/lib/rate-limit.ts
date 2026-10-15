@@ -24,11 +24,12 @@ export interface RateLimitResult {
   retryAfterSeconds: number;
 }
 
+export const MAX_RATE_LIMIT_STORE_SIZE = 5000;
+
 const rateLimitStore = new Map<string, RateLimitRecord>();
 
 /**
  * Evicts expired entries from the in-memory store to prevent memory leaks.
- * Can be called explicitly or automatically during rate limit checks.
  *
  * @param now Epoch timestamp in milliseconds (defaults to Date.now())
  * @returns Number of expired entries evicted
@@ -45,6 +46,35 @@ export function evictExpiredEntries(now: number = Date.now()): number {
 }
 
 /**
+ * Enforces a hard cap on the in-memory store size to prevent unbounded memory growth.
+ * When the cap is reached, it first evicts expired entries, and if still at or above
+ * the cap, it drops the oldest entries (Map insertion order).
+ *
+ * @param maxSize Maximum allowed active entries in the Map
+ * @param now Epoch timestamp in milliseconds
+ * @returns Object containing counts of expired entries evicted and oldest entries dropped
+ */
+export function enforceMaxStoreSize(
+  maxSize: number = MAX_RATE_LIMIT_STORE_SIZE,
+  now: number = Date.now()
+): { evicted: number; dropped: number } {
+  const evicted = evictExpiredEntries(now);
+
+  let dropped = 0;
+  if (rateLimitStore.size > maxSize) {
+    for (const key of rateLimitStore.keys()) {
+      rateLimitStore.delete(key);
+      dropped++;
+      if (rateLimitStore.size <= maxSize) {
+        break;
+      }
+    }
+  }
+
+  return { evicted, dropped };
+}
+
+/**
  * Returns current count of active entries in the in-memory store (for testing/diagnostics).
  */
 export function getRateLimitStoreSize(): number {
@@ -52,7 +82,43 @@ export function getRateLimitStoreSize(): number {
 }
 
 /**
- * Checks rate limit for a given identifier key.
+ * Inspects rate limit state without incrementing the counter.
+ * Useful for checking whether an entity is locked out before taking an action
+ * (e.g. checking failed login limits before processing credentials).
+ */
+export function peekRateLimit(key: string, limit = 30): RateLimitResult {
+  const now = Date.now();
+  const record = rateLimitStore.get(key);
+
+  if (!record || now >= record.resetAt) {
+    return {
+      success: true,
+      limit,
+      remaining: limit,
+      retryAfterSeconds: 0,
+    };
+  }
+
+  if (record.count >= limit) {
+    const retryAfterSeconds = Math.max(1, Math.ceil((record.resetAt - now) / 1000));
+    return {
+      success: false,
+      limit,
+      remaining: 0,
+      retryAfterSeconds,
+    };
+  }
+
+  return {
+    success: true,
+    limit,
+    remaining: Math.max(0, limit - record.count),
+    retryAfterSeconds: 0,
+  };
+}
+
+/**
+ * Checks rate limit for a given identifier key and increments the counter.
  *
  * @param key Unique key to rate limit (e.g. `login:ip:127.0.0.1` or `transfer:usr_123`)
  * @param limit Maximum allowed requests per window
@@ -65,9 +131,13 @@ export function checkRateLimitDetailed(
 ): RateLimitResult {
   const now = Date.now();
 
-  // Opportunistic garbage collection of expired entries when the store grows
-  if (rateLimitStore.size > 20) {
-    evictExpiredEntries(now);
+  // If key does not exist yet, enforce capacity bounds before insertion
+  if (!rateLimitStore.has(key)) {
+    if (rateLimitStore.size >= MAX_RATE_LIMIT_STORE_SIZE) {
+      enforceMaxStoreSize(MAX_RATE_LIMIT_STORE_SIZE, now);
+    } else if (rateLimitStore.size > 20) {
+      evictExpiredEntries(now);
+    }
   }
 
   const record = rateLimitStore.get(key);
@@ -124,7 +194,7 @@ export function resetRateLimitStore(): void {
  *   2. The LAST entry in `x-forwarded-for` (appended by the closest trusted proxy),
  *      preventing spoofing from client-injected leading IPs.
  *   3. Shared fallback: 'unknown' (with a generous limit in non-production, or rejected
- *      with 429 in production environments where trusted IP headers are required).
+ *      with 429 on Vercel where trusted IP headers are required).
  */
 export function getClientIp(request: Request | NextRequest): string {
   const realIp = request.headers.get('x-real-ip');

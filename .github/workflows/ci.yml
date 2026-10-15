@@ -38,14 +38,14 @@ jobs:
       - name: Build Next.js production app
         run: npm run build
         env:
-          # Use GitHub Actions secret if provisioned, or labeled test-only CI secret (strictly distinct from production)
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET || 'CI_TEST_ONLY_SECRET_KEY_NOT_FOR_PRODUCTION_USE_32B!' }}
+          # Use dedicated GitHub Actions secret CI_SESSION_SECRET if provisioned, with test-only fallback
+          SESSION_SECRET: ${{ secrets.CI_SESSION_SECRET || 'CI_TEST_ONLY_SECRET_KEY_NOT_FOR_PRODUCTION_USE_32B!' }}
 
       - name: Playwright E2E tests
         run: npm run test:e2e
         env:
-          # Use GitHub Actions secret if provisioned, or labeled test-only CI secret (strictly distinct from production)
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET || 'CI_TEST_ONLY_SECRET_KEY_NOT_FOR_PRODUCTION_USE_32B!' }}
+          # Use dedicated GitHub Actions secret CI_SESSION_SECRET if provisioned, with test-only fallback
+          SESSION_SECRET: ${{ secrets.CI_SESSION_SECRET || 'CI_TEST_ONLY_SECRET_KEY_NOT_FOR_PRODUCTION_USE_32B!' }}
           E2E_DETERMINISTIC: '1'
 
       - name: Upload Playwright report on failure

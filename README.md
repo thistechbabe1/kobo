@@ -58,8 +58,10 @@ Every text/background pair meets W3C relative luminance contrast requirements:
 
 ---
 
-## ⚠️ Known Limitations & Architecture Notes
+## Known Limitations & Architecture Notes
 
+- **Email-Only Rate Limiting & Account Lockout DoS Trade-Off**:
+  The login route enforces a cross-network limit of 15 failed login attempts per minute for a given email address to mitigate distributed credential stuffing. Counting only failed attempts prevents legitimate logins from consuming the quota, but introduces an inherent trade-off: an attacker intentionally submitting 15 invalid passwords can temporarily lock a victim out. In production, this trade-off is resolved using progressive CAPTCHAs, step-up MFA/OTP challenges, and risk-based anomaly detection rather than a hard lockout.
 - **PIN Lockout & State Persistence in Sealed Cookie**:
   The transaction PIN attempt count and 15-minute security lockout timestamp (`pin` and `loc`) live in the cryptographically sealed, HTTP-only `kobo_state` session cookie. Because state is held on the client, the lockout can theoretically be reset by clearing browser cookies or replaying an old one. In a production system, PIN authentication attempts, lockouts, and wallet balances would be held in authoritative server-side state (such as Redis or a database with atomic transactional isolation).
 - **Per-Instance In-Memory Rate Limiting**:

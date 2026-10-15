@@ -23,7 +23,7 @@ export default defineConfig({
     // In CI, Next.js is already built by the CI workflow step, so we start the pre-built server directly
     command: process.env.CI ? 'next start -p 3333' : 'npm run build && next start -p 3333',
     url: 'http://localhost:3333',
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 180 * 1000,
     env: {
       E2E_DETERMINISTIC: '1',

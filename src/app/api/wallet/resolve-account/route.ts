@@ -25,7 +25,7 @@ function resolveMockName(accountNumber: string): string {
 export async function POST(request: Request) {
   const clientIp = getClientIp(request);
 
-  if (process.env.NODE_ENV === 'production' && clientIp === 'unknown') {
+  if (process.env.VERCEL && clientIp === 'unknown') {
     return NextResponse.json(
       {
         error: 'Unable to determine client IP address from trusted headers. Request rejected.',

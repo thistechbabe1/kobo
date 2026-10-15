@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { AUTH_COOKIE_NAME, sealAuthToken } from '@/lib/session';
 import { LoginInputSchema } from '@/lib/validations';
-import { checkRateLimitDetailed, getClientIp } from '@/lib/rate-limit';
+import { checkRateLimitDetailed, peekRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   const clientIp = getClientIp(request);
 
-  // In production, reject request when no trusted IP can be determined
-  if (process.env.NODE_ENV === 'production' && clientIp === 'unknown') {
+  // On Vercel edge/serverless ingress, reject request when no trusted IP header exists
+  if (process.env.VERCEL && clientIp === 'unknown') {
     return NextResponse.json(
       {
         error: 'Unable to determine client IP address from trusted headers. Request rejected.',
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   const rawEmail = typeof typedBody?.email === 'string' ? typedBody.email : '';
   const normalizedEmail = rawEmail ? rawEmail.trim().toLowerCase() : '';
 
-  // Limit 1: IP-level rate limit: 40/min (or generous 100/min in dev when IP is unknown)
+  // Limit 1: IP-level rate limit: 40/min (generous 100/min when IP is unknown in local dev)
   const ipLimitMax = clientIp === 'unknown' ? 100 : 40;
   const ipRateLimit = checkRateLimitDetailed(`login:ip:${clientIp}`, ipLimitMax, 60000);
   if (!ipRateLimit.success) {
@@ -56,26 +56,27 @@ export async function POST(request: Request) {
     );
   }
 
-  // Limit 2: Email-only limit across all IPs: 15/min
+  // Limit 2: Email-only failed login limit across all IPs: 15 failed logins/min
+  // We inspect peekRateLimit first so successful logins are never locked out prematurely.
   if (normalizedEmail) {
-    const emailOnlyRateLimit = checkRateLimitDetailed(`login:email:${normalizedEmail}`, 15, 60000);
-    if (!emailOnlyRateLimit.success) {
+    const failedEmailLimit = peekRateLimit(`login:failed_email:${normalizedEmail}`, 15);
+    if (!failedEmailLimit.success) {
       return NextResponse.json(
         {
-          error: 'Too many login attempts for this account across networks. Please wait before trying again.',
+          error: 'Too many failed login attempts for this account across networks. Please wait before trying again.',
           code: 'RATE_LIMIT_EXCEEDED',
-          retryAfter: emailOnlyRateLimit.retryAfterSeconds,
+          retryAfter: failedEmailLimit.retryAfterSeconds,
         },
         {
           status: 429,
           headers: {
-            'Retry-After': String(emailOnlyRateLimit.retryAfterSeconds),
+            'Retry-After': String(failedEmailLimit.retryAfterSeconds),
           },
         }
       );
     }
 
-    // Limit 3: IP + lowercased email limit: 8/min
+    // Limit 3: IP + lowercased email limit: 8/min (counts all attempts from this specific IP)
     const ipEmailRateLimit = checkRateLimitDetailed(`login:ip_email:${clientIp}:${normalizedEmail}`, 8, 60000);
     if (!ipEmailRateLimit.success) {
       return NextResponse.json(
@@ -120,6 +121,11 @@ export async function POST(request: Request) {
     const isValidPassword = password === 'demopassword123' || password === '••••••••••••' || isDemoQuickLogin;
 
     if (!isValidPassword) {
+      // Record failed attempt against the email-only cross-network failure limiter
+      if (normalizedEmail) {
+        checkRateLimitDetailed(`login:failed_email:${normalizedEmail}`, 15, 60000);
+      }
+
       return NextResponse.json(
         { error: 'Invalid email address or password', code: 'INVALID_CREDENTIALS' },
         { status: 401 }

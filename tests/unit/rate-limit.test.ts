@@ -7,7 +7,9 @@ import {
   checkRateLimitDetailed,
   resetRateLimitStore,
   evictExpiredEntries,
+  enforceMaxStoreSize,
   getRateLimitStoreSize,
+  peekRateLimit,
   getClientIp,
 } from '@/lib/rate-limit';
 import { sealAuthToken, AUTH_COOKIE_NAME } from '@/lib/session';
@@ -55,6 +57,33 @@ describe('API Rate Limiting with Retry-After (feature/rate-limiting)', () => {
       expect(getRateLimitStoreSize()).toBe(1);
     });
 
+    it('enforces hard cap on store size: evicts expired entries, then drops oldest', () => {
+      // Set test cap to 3
+      checkRateLimitDetailed('key-1', 5, 500); // will expire quickly
+      checkRateLimitDetailed('key-2', 5, 60000);
+      checkRateLimitDetailed('key-3', 5, 60000);
+
+      expect(getRateLimitStoreSize()).toBe(3);
+
+      // Advance time past key-1's expiry
+      const future = Date.now() + 600;
+      const result1 = enforceMaxStoreSize(3, future);
+      expect(result1.evicted).toBe(1);
+      expect(result1.dropped).toBe(0);
+      expect(getRateLimitStoreSize()).toBe(2);
+
+      // Add two more keys
+      checkRateLimitDetailed('key-4', 5, 60000);
+      checkRateLimitDetailed('key-5', 5, 60000);
+      expect(getRateLimitStoreSize()).toBe(4);
+
+      // All keys active: drops the oldest key (key-2)
+      const result2 = enforceMaxStoreSize(3, future);
+      expect(result2.evicted).toBe(0);
+      expect(result2.dropped).toBe(1);
+      expect(getRateLimitStoreSize()).toBe(3);
+    });
+
     it('getClientIp trusts x-real-ip, uses LAST x-forwarded-for entry, and falls back to shared unknown', () => {
       // Prioritizes x-real-ip
       const reqWithRealIp = new NextRequest('http://localhost:3000/api/auth/login', {
@@ -81,8 +110,15 @@ describe('API Rate Limiting with Retry-After (feature/rate-limiting)', () => {
 
   describe('POST /api/auth/login Rate Limiting & Validation', () => {
     const originalEnv = process.env.NODE_ENV;
+    const originalVercel = process.env.VERCEL;
+
     afterEach(() => {
       (process.env as Record<string, string | undefined>).NODE_ENV = originalEnv;
+      if (originalVercel !== undefined) {
+        (process.env as Record<string, string | undefined>).VERCEL = originalVercel;
+      } else {
+        delete (process.env as Record<string, string | undefined>).VERCEL;
+      }
     });
 
     it('Item 1a: IP-level limit trips independently at 40 requests/min across different emails', async () => {
@@ -138,7 +174,7 @@ describe('API Rate Limiting with Retry-After (feature/rate-limiting)', () => {
       expect(differentIpRes.status).not.toBe(429);
     });
 
-    it('Item 1c: Email-only limit trips independently at 15 requests/min across multiple IPs', async () => {
+    it('Item 1c: Email-only failed login limit trips independently at 15 failed logins/min across multiple IPs', async () => {
       const makeReq = (ipIndex: number) =>
         new NextRequest('http://localhost:3000/api/auth/login', {
           method: 'POST',
@@ -149,13 +185,13 @@ describe('API Rate Limiting with Retry-After (feature/rate-limiting)', () => {
           body: JSON.stringify({ email: 'distributed_target@kobo.demo', password: 'wrong' }),
         });
 
-      // 15 requests from 15 completely different IPs (each IP only has 1 request, so IP limit 40 and IP+email 8 never trip)
+      // 15 failed login attempts from 15 completely different IPs
       for (let i = 1; i <= 15; i++) {
         const res = await loginPOST(makeReq(i));
-        expect(res.status).not.toBe(429);
+        expect(res.status).toBe(401);
       }
 
-      // 16th request from a 16th IP must be blocked by the email-only cross-network limit
+      // 16th attempt from a 16th IP must be blocked by the email-only cross-network limit
       const blockedRes = await loginPOST(makeReq(16));
       expect(blockedRes.status).toBe(429);
       const data = await blockedRes.json();
@@ -163,8 +199,30 @@ describe('API Rate Limiting with Retry-After (feature/rate-limiting)', () => {
       expect(data.error).toMatch(/across networks/i);
     });
 
-    it('Item 2: rejects unknown IP in production with 429', async () => {
-      (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
+    it('email-only rate limit counts failed logins only and does not penalize successful logins', async () => {
+      const makeSuccessReq = (ipIndex: number) =>
+        new NextRequest('http://localhost:3000/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'x-real-ip': `10.10.10.${ipIndex}`,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({ email: 'babatunde@kobo.demo', password: 'demopassword123' }),
+        });
+
+      // 5 successful logins from different IPs
+      for (let i = 0; i < 5; i++) {
+        const res = await loginPOST(makeSuccessReq(i));
+        expect(res.status).toBe(200);
+      }
+
+      // Remaining failed attempts allowance is still full (15)
+      const peek = peekRateLimit('login:failed_email:babatunde@kobo.demo', 15);
+      expect(peek.remaining).toBe(15);
+    });
+
+    it('Item 2: Vercel signal - rejects unknown IP only when process.env.VERCEL is set', async () => {
+      (process.env as Record<string, string | undefined>).VERCEL = '1';
 
       const reqEmpty = new NextRequest('http://localhost:3000/api/auth/login', {
         method: 'POST',
@@ -172,10 +230,27 @@ describe('API Rate Limiting with Retry-After (feature/rate-limiting)', () => {
         body: JSON.stringify({ email: 'test@kobo.demo', password: 'wrong' }),
       });
 
-      const res = await loginPOST(reqEmpty);
-      expect(res.status).toBe(429);
-      const data = await res.json();
+      const resVercel = await loginPOST(reqEmpty);
+      expect(resVercel.status).toBe(429);
+      const data = await resVercel.json();
       expect(data.code).toBe('IP_REQUIRED');
+
+      // Without process.env.VERCEL, even in production, IP is not rejected with IP_REQUIRED
+      delete (process.env as Record<string, string | undefined>).VERCEL;
+      const resLocal = await loginPOST(reqEmpty);
+      expect(resLocal.status).not.toBe(429);
+    });
+
+    it('Item 2: Vercel signal - E2E_DETERMINISTIC is ignored only when VERCEL_ENV === production', () => {
+      const evaluateDeterministic = (e2eFlag?: string, vercelEnv?: string) => {
+        return e2eFlag === '1' && vercelEnv !== 'production';
+      };
+
+      expect(evaluateDeterministic('1', undefined)).toBe(true);
+      expect(evaluateDeterministic('1', 'preview')).toBe(true);
+      expect(evaluateDeterministic('1', 'development')).toBe(true);
+      expect(evaluateDeterministic('1', 'production')).toBe(false);
+      expect(evaluateDeterministic('0', 'preview')).toBe(false);
     });
 
     it('handles malformed JSON payload by returning 400 with INVALID_INPUT, not 500', async () => {

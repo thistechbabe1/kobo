@@ -85,11 +85,10 @@ export async function POST(request: NextRequest) {
     inFlightKeys.add(idempotencyKey);
 
     // 3. Deterministic Simulation Triggers
-    // E2E_DETERMINISTIC flag is strictly ignored when running in production
+    // E2E_DETERMINISTIC flag is ignored ONLY when deployed to Vercel production
     const isE2EDeterministic =
       process.env.E2E_DETERMINISTIC === '1' &&
-      process.env.VERCEL_ENV !== 'production' &&
-      process.env.NODE_ENV !== 'production';
+      process.env.VERCEL_ENV !== 'production';
     void isE2EDeterministic; // available for deterministic test overrides
 
     const cleanAccount = String(accountNumber).trim();
