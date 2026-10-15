@@ -20,7 +20,7 @@ import { Beneficiary, getSavedBeneficiaries, persistBeneficiary } from '@/lib/be
 import { BankSelector } from './BankSelector';
 import { BeneficiaryRail } from './BeneficiaryRail';
 import { OfficialReceipt } from '@/components/receipt/OfficialReceipt';
-import { PrimaryButton, GhostButton, SurfaceCard } from '@/components/ui';
+import { PrimaryButton, GhostButton, SurfaceCard, CalloutBanner } from '@/components/ui';
 
 export interface SendMoneyFlowProps {
   initialState: CompactSessionPayload;
@@ -420,9 +420,10 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
 
       {/* Global Lockout Banner if locked on entry or during flow */}
       {isLockedOut && (
-        <div
+        <CalloutBanner
+          variant="error"
           data-testid="lockout-banner"
-          className="rounded-2xl border border-red-500/30 bg-red-50 dark:bg-red-950/20 p-4 text-red-700 dark:text-red-300 space-y-2"
+          className="rounded-2xl p-4 space-y-2"
         >
           <div className="flex items-center gap-2 font-bold text-sm">
             <Lock className="w-4 h-4 text-red-600 dark:text-red-400" />
@@ -437,7 +438,7 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
               Unlocks in {Math.floor(lockCountdownSec / 60)}m {lockCountdownSec % 60}s
             </span>
           </div>
-        </div>
+        </CalloutBanner>
       )}
 
       {/* Step Indicators */}
@@ -582,13 +583,14 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
             )}
 
             {resolutionError && (
-              <div
+              <CalloutBanner
+                variant="error"
                 data-testid="account-error-badge"
-                className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-500/30 text-red-700 dark:text-red-300"
+                className="flex items-center gap-2 p-3"
               >
                 <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
                 <span className="text-xs font-medium">{resolutionError}</span>
-              </div>
+              </CalloutBanner>
             )}
           </div>
 
@@ -703,16 +705,17 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
 
             {/* Insufficient Balance Alert */}
             {!isBalanceSufficient && transferAmountKobo > 0 && (
-              <div
+              <CalloutBanner
+                variant="warning"
                 data-testid="insufficient-funds-alert"
-                className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-center gap-2"
+                className="p-3 text-xs flex items-center gap-2"
               >
                 <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
                 <span>
                   Insufficient funds. Total debit ({formatNairaFromKobo(totalDebitKobo)}) exceeds your
                   balance of {formatNairaFromKobo(walletBalanceKobo)}.
                 </span>
-              </div>
+              </CalloutBanner>
             )}
 
             {/* Narration */}
@@ -875,13 +878,10 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
 
           {/* Inline Error / Lockout Banner */}
           {transferError && (
-            <div
+            <CalloutBanner
+              variant={transferError.retryable ? 'info' : 'error'}
               data-testid="transfer-error-banner"
-              className={`p-3.5 rounded-xl border text-xs space-y-2 ${
-                transferError.retryable
-                  ? 'border-sky-500/30 bg-sky-50 dark:bg-sky-950/20 text-sky-800 dark:text-sky-200'
-                  : 'border-red-500/30 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300'
-              }`}
+              className="p-3.5 text-xs space-y-2"
             >
               <div className="flex items-center gap-2 font-medium">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -899,7 +899,7 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
                   <span>Retry Transfer (Same Key)</span>
                 </button>
               )}
-            </div>
+            </CalloutBanner>
           )}
 
           {/* Numeric Keypad for Mobile and Touch / Accessible Click */}

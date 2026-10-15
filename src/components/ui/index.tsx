@@ -142,3 +142,9 @@ export function SectionHeader({
     </div>
   );
 }
+
+// ─── Callout Banner ────────────────────────────────────────────────────────
+
+export { CalloutBanner } from './CalloutBanner';
+export type { CalloutBannerProps, CalloutVariant } from './CalloutBanner';
+
