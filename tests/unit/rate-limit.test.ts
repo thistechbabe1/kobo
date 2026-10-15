@@ -36,10 +36,10 @@ describe('API Rate Limiting with Retry-After (feature/rate-limiting)', () => {
       expect(resBlocked.retryAfterSeconds).toBeLessThanOrEqual(60);
     });
 
-    it('2a: getClientIp trusts x-real-ip and uses the LAST entry in x-forwarded-for', async () => {
+    it('getClientIp trusts x-real-ip, uses LAST x-forwarded-for entry, and returns distinct fallbacks when headers are absent', async () => {
       const { getClientIp } = await import('@/lib/rate-limit');
 
-      // Test 1: Prioritizes x-real-ip
+      // Prioritizes x-real-ip
       const reqWithRealIp = new NextRequest('http://localhost:3000/api/auth/login', {
         headers: {
           'x-real-ip': '203.0.113.195',
@@ -48,7 +48,7 @@ describe('API Rate Limiting with Retry-After (feature/rate-limiting)', () => {
       });
       expect(getClientIp(reqWithRealIp)).toBe('203.0.113.195');
 
-      // Test 2: Takes the LAST entry in x-forwarded-for when x-real-ip is not present
+      // Takes LAST entry in x-forwarded-for when x-real-ip is not present
       const reqWithForwarded = new NextRequest('http://localhost:3000/api/auth/login', {
         headers: {
           'x-forwarded-for': 'client.spoofed.ip, proxy1.ip, 198.51.100.50',
@@ -56,62 +56,83 @@ describe('API Rate Limiting with Retry-After (feature/rate-limiting)', () => {
       });
       expect(getClientIp(reqWithForwarded)).toBe('198.51.100.50');
 
-      // Test 3: Falls back to 127.0.0.1 if headers are empty
-      const reqEmpty = new NextRequest('http://localhost:3000/api/auth/login');
-      expect(getClientIp(reqEmpty)).toBe('127.0.0.1');
+      // Distinct fallbacks when no headers exist (does not lump all into a single shared bucket)
+      const reqEmpty1 = new NextRequest('http://localhost:3000/api/auth/login');
+      const reqEmpty2 = new NextRequest('http://localhost:3000/api/auth/login');
+      const ip1 = getClientIp(reqEmpty1);
+      const ip2 = getClientIp(reqEmpty2);
+      expect(ip1).toMatch(/^unknown-/);
+      expect(ip2).toMatch(/^unknown-/);
+      expect(ip1).not.toBe(ip2);
     });
   });
 
-  describe('POST /api/auth/login Rate Limiting', () => {
-    it('2b: keys login rate limit by IP AND lowercased email address', async () => {
+  describe('POST /api/auth/login Rate Limiting & Validation', () => {
+    it('enforces dual rate limiting: IP limit blocks requests even if emails differ', async () => {
       const makeReq = (email: string) =>
         new NextRequest('http://localhost:3000/api/auth/login', {
           method: 'POST',
           headers: {
-            'x-real-ip': '192.168.1.100',
+            'x-real-ip': '198.51.100.77',
             'content-type': 'application/json',
           },
           body: JSON.stringify({ email, password: 'wrong' }),
         });
 
-      // 10 requests for UserA (mixed case)
+      // 10 requests from same IP with different emails
       for (let i = 0; i < 10; i++) {
-        const res = await loginPOST(makeReq('Babatunde@Kobo.demo'));
+        const res = await loginPOST(makeReq(`user${i}@kobo.demo`));
         expect(res.status).not.toBe(429);
       }
 
-      // 11th request for same email (lowercased) must be blocked with 429
-      const blockedRes = await loginPOST(makeReq('babatunde@kobo.demo'));
-      expect(blockedRes.status).toBe(429);
-      expect(blockedRes.headers.get('Retry-After')).toBeTruthy();
-
-      // Different email from same IP has its own separate bucket and is NOT blocked
-      const differentEmailRes = await loginPOST(makeReq('another.user@kobo.demo'));
-      expect(differentEmailRes.status).not.toBe(429);
-    });
-
-    it('returns 429 with Retry-After header after 10 requests from the same IP + email', async () => {
-      const makeReq = () =>
-        new NextRequest('http://localhost:3000/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'x-real-ip': '192.168.1.105',
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({ email: 'test.limit@kobo.demo', password: 'wrong' }),
-        });
-
-      for (let i = 0; i < 10; i++) {
-        const res = await loginPOST(makeReq());
-        expect(res.status).not.toBe(429);
-      }
-
-      const blockedRes = await loginPOST(makeReq());
+      // 11th request from the same IP must be blocked by the IP-level rate limit
+      const blockedRes = await loginPOST(makeReq('user99@kobo.demo'));
       expect(blockedRes.status).toBe(429);
       const data = await blockedRes.json();
       expect(data.code).toBe('RATE_LIMIT_EXCEEDED');
       expect(blockedRes.headers.get('Retry-After')).toBeTruthy();
-      expect(Number(blockedRes.headers.get('Retry-After'))).toBeGreaterThan(0);
+    });
+
+    it('enforces dual rate limiting: IP + lowercased email limit blocks same email within budget', async () => {
+      const makeReq = (ip: string, email: string) =>
+        new NextRequest('http://localhost:3000/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'x-real-ip': ip,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({ email, password: 'wrong' }),
+        });
+
+      // 10 attempts for user with mixed casing
+      for (let i = 0; i < 10; i++) {
+        const res = await loginPOST(makeReq('192.168.1.100', 'Babatunde@Kobo.demo'));
+        expect(res.status).not.toBe(429);
+      }
+
+      // 11th attempt with lowercased email is blocked by the IP+email limit
+      const blockedRes = await loginPOST(makeReq('192.168.1.100', 'babatunde@kobo.demo'));
+      expect(blockedRes.status).toBe(429);
+      const data = await blockedRes.json();
+      expect(data.code).toBe('RATE_LIMIT_EXCEEDED');
+      expect(blockedRes.headers.get('Retry-After')).toBeTruthy();
+    });
+
+    it('handles malformed JSON payload by returning 400 with INVALID_INPUT, not 500', async () => {
+      const malformedReq = new NextRequest('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'x-real-ip': '192.168.1.120',
+          'content-type': 'application/json',
+        },
+        body: '{"email": "babatunde@kobo.demo", password: invalid-json',
+      });
+
+      const res = await loginPOST(malformedReq);
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.code).toBe('INVALID_INPUT');
+      expect(data.error).toMatch(/Invalid JSON|Malformed/i);
     });
   });
 

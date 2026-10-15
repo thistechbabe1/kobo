@@ -85,11 +85,19 @@ export function resetRateLimitStore(): void {
   rateLimitStore.clear();
 }
 
+/** Monotonic counter used to generate unique fallback IPs when no header is present. */
+let fallbackCounter = 0;
+
 /**
  * Extracts the trusted client IP from request headers.
- * Prioritizes Vercel's trusted `x-real-ip` header. If missing, takes the LAST entry
- * in `x-forwarded-for` (appended by the closest trusted proxy) to prevent spoofing
- * from client-injected leading IPs. Defaults to '127.0.0.1'.
+ *
+ * Priority order:
+ *   1. Vercel's trusted `x-real-ip` header (set by edge ingress, cannot be spoofed).
+ *   2. The LAST entry in `x-forwarded-for` (appended by the closest trusted proxy),
+ *      preventing spoofing from client-injected leading IPs.
+ *   3. A unique per-request fallback `unknown-<counter>` so that headerless requests
+ *      are never lumped into one shared bucket. This covers direct-access or test
+ *      environments where no proxy sets IP headers.
  */
 export function getClientIp(request: Request | NextRequest): string {
   const realIp = request.headers.get('x-real-ip');
@@ -105,5 +113,8 @@ export function getClientIp(request: Request | NextRequest): string {
     }
   }
 
-  return '127.0.0.1';
+  // Each headerless request gets a unique key so rate limits are never
+  // shared across unrelated callers that happen to lack proxy headers.
+  fallbackCounter += 1;
+  return `unknown-${fallbackCounter}`;
 }

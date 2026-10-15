@@ -16,14 +16,16 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        channel: 'chrome',
       },
     },
   ],
   webServer: {
-    command: 'npx next start -p 3333',
+    command: 'npm run build && next start -p 3333',
     url: 'http://localhost:3333',
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    timeout: 180 * 1000,
+    env: {
+      E2E_DETERMINISTIC: '1',
+    },
   },
 });

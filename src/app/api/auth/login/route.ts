@@ -4,37 +4,75 @@ import { LoginInputSchema } from '@/lib/validations';
 import { checkRateLimitDetailed, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
-  let body: { email?: string; password?: string } | null = null;
-  try {
-    body = await request.clone().json();
-  } catch {
-    // If body cannot be cloned/parsed, rate limit by IP alone
-  }
-
+  // 1. Dual Rate Limiting: IP-level + (IP + lowercased email)
   const clientIp = getClientIp(request);
-  const normalizedEmail = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : 'unknown';
-  const rateLimitKey = `login:${clientIp}:${normalizedEmail}`;
 
-  // Rate limit: max 10 login attempts per minute per IP + email
-  const rateLimit = checkRateLimitDetailed(rateLimitKey, 10, 60000);
-  if (!rateLimit.success) {
+  // 1a. IP-level rate limit: max 10 attempts per minute per IP
+  const ipRateLimit = checkRateLimitDetailed(`login:${clientIp}`, 10, 60000);
+  if (!ipRateLimit.success) {
     return NextResponse.json(
       {
-        error: 'Too many login attempts. Please wait before trying again.',
+        error: 'Too many login attempts from this network. Please wait before trying again.',
         code: 'RATE_LIMIT_EXCEEDED',
-        retryAfter: rateLimit.retryAfterSeconds,
+        retryAfter: ipRateLimit.retryAfterSeconds,
       },
       {
         status: 429,
         headers: {
-          'Retry-After': String(rateLimit.retryAfterSeconds),
+          'Retry-After': String(ipRateLimit.retryAfterSeconds),
         },
       }
     );
   }
 
+  // 2. Wrap body parse in try/catch for key extraction and validation
+  let rawBody: unknown = null;
+  let isJsonParseError = false;
   try {
-    const rawBody = body ?? (await request.json().catch(() => null));
+    const text = await request.clone().text();
+    if (text) {
+      try {
+        rawBody = JSON.parse(text);
+      } catch {
+        isJsonParseError = true;
+      }
+    }
+  } catch {
+    // If request clone fails
+  }
+
+  const typedBody = (typeof rawBody === 'object' && rawBody !== null ? rawBody : null) as { email?: unknown } | null;
+  const rawEmail = typeof typedBody?.email === 'string' ? typedBody.email : '';
+  const normalizedEmail = rawEmail ? rawEmail.trim().toLowerCase() : 'unknown';
+  const emailRateLimitKey = `login:${clientIp}:${normalizedEmail}`;
+
+  // 1b. IP + lowercased email rate limit: max 10 attempts per minute. Both IP and IP+email limits must pass!
+  const emailRateLimit = checkRateLimitDetailed(emailRateLimitKey, 10, 60000);
+  if (!emailRateLimit.success) {
+    return NextResponse.json(
+      {
+        error: 'Too many login attempts for this account. Please wait before trying again.',
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: emailRateLimit.retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(emailRateLimit.retryAfterSeconds),
+        },
+      }
+    );
+  }
+
+  // Malformed JSON must reach validation and return 400 with code INVALID_INPUT, never 500
+  if (isJsonParseError) {
+    return NextResponse.json(
+      { error: 'Invalid JSON payload in request body', code: 'INVALID_INPUT' },
+      { status: 400 }
+    );
+  }
+
+  try {
     const parsed = LoginInputSchema.safeParse(rawBody);
 
     if (!parsed.success) {
