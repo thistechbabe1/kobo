@@ -20,6 +20,7 @@ import { Beneficiary, getSavedBeneficiaries, persistBeneficiary } from '@/lib/be
 import { BankSelector } from './BankSelector';
 import { BeneficiaryRail } from './BeneficiaryRail';
 import { OfficialReceipt } from '@/components/receipt/OfficialReceipt';
+import { PrimaryButton, GhostButton, SurfaceCard } from '@/components/ui';
 
 export interface SendMoneyFlowProps {
   initialState: CompactSessionPayload;
@@ -401,7 +402,7 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
       </div>
 
       {/* Header with Balance */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-4 sm:p-5 shadow-sm">
+      <SurfaceCard className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 shadow-sm">
         <div>
           <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             Available Balance
@@ -415,7 +416,7 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
           <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>CBN Regulated Transfer</span>
         </div>
-      </div>
+      </SurfaceCard>
 
       {/* Global Lockout Banner if locked on entry or during flow */}
       {isLockedOut && (
@@ -480,9 +481,9 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
       {/* STEP 1: Recipient Selection & Bank Picker */}
       {/* ========================================================================= */}
       {currentStep === 1 && (
-        <div
+        <SurfaceCard
           data-testid="send-step-1"
-          className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm"
+          className="p-5 sm:p-6 space-y-5 shadow-sm"
         >
           <div>
             <h2 className="text-lg font-bold text-[var(--text-primary)]">Select Recipient &amp; Bank</h2>
@@ -591,25 +592,26 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
             )}
           </div>
 
-          <button
+          <PrimaryButton
             type="button"
+            fullWidth
             onClick={handleProceedToAmount}
             disabled={!resolvedRecipientName || accountNumber.length !== 10 || isLockedOut}
-            className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-11 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
           >
             <span>Continue to Amount</span>
             <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
+          </PrimaryButton>
+        </SurfaceCard>
       )}
 
       {/* ========================================================================= */}
       {/* STEP 2: Amount Entry & Live Fee Calculator */}
       {/* ========================================================================= */}
       {currentStep === 2 && (
-        <div
+        <SurfaceCard
           data-testid="send-step-2"
-          className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm"
+          className="p-5 sm:p-6 space-y-5 shadow-sm"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -732,34 +734,34 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
           </div>
 
           <div className="flex items-center gap-3 pt-2">
-            <button
+            <GhostButton
               type="button"
               onClick={() => setCurrentStep(1)}
-              className="w-28 sm:w-32 h-11 shrink-0 flex items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="w-28 sm:w-32 h-11 shrink-0 text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
-            </button>
-            <button
+            </GhostButton>
+            <PrimaryButton
               type="button"
               onClick={handleProceedToReview}
               disabled={!isBalanceSufficient || isLockedOut}
-              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-1 h-11 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
             >
               <span>Review Details</span>
               <ArrowRight className="w-4 h-4" />
-            </button>
+            </PrimaryButton>
           </div>
-        </div>
+        </SurfaceCard>
       )}
 
       {/* ========================================================================= */}
       {/* STEP 3: Transfer Review Summary */}
       {/* ========================================================================= */}
       {currentStep === 3 && (
-        <div
+        <SurfaceCard
           data-testid="send-step-3"
-          className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm"
+          className="p-5 sm:p-6 space-y-5 shadow-sm"
         >
           <div>
             <h2 className="text-lg font-bold text-[var(--text-primary)]">Review Transfer Details</h2>
@@ -810,34 +812,34 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
           </div>
 
           <div className="flex items-center gap-3 pt-2">
-            <button
+            <GhostButton
               type="button"
               onClick={() => handleBackToEdit(2)}
-              className="w-28 sm:w-32 h-11 shrink-0 flex items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="w-28 sm:w-32 h-11 shrink-0 text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Edit</span>
-            </button>
-            <button
+            </GhostButton>
+            <PrimaryButton
               type="button"
               onClick={handleProceedToPin}
               disabled={isLockedOut}
-              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 cursor-pointer"
+              className="flex-1 h-11 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
             >
               <KeyRound className="w-4 h-4" />
               <span>Authorize with PIN</span>
-            </button>
+            </PrimaryButton>
           </div>
-        </div>
+        </SurfaceCard>
       )}
 
       {/* ========================================================================= */}
       {/* STEP 4: Secure PIN Modal / Security Screen */}
       {/* ========================================================================= */}
       {currentStep === 4 && (
-        <div
+        <SurfaceCard
           data-testid="send-step-4"
-          className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm"
+          className="p-5 sm:p-6 space-y-5 shadow-sm"
         >
           <div className="text-center space-y-1">
             <div className="w-10 h-10 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center mx-auto mb-2">
@@ -943,20 +945,20 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3 pt-2">
-            <button
+            <GhostButton
               type="button"
               disabled={isSubmitting}
               onClick={() => handleBackToEdit(3)}
-              className="w-28 sm:w-32 h-11 shrink-0 flex items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 cursor-pointer"
+              className="w-28 sm:w-32 h-11 shrink-0 text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
             >
               <span>Cancel</span>
-            </button>
-            <button
+            </GhostButton>
+            <PrimaryButton
               type="button"
               data-testid="confirm-transfer-btn"
               disabled={pinDigits.length !== 4 || isSubmitting || isLockedOut}
               onClick={() => executeTransfer(idempotencyKey)}
-              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-1 h-11 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
             >
               {isSubmitting ? (
                 <>
@@ -969,9 +971,9 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
                   <span>Confirm &amp; Send</span>
                 </>
               )}
-            </button>
+            </PrimaryButton>
           </div>
-        </div>
+        </SurfaceCard>
       )}
 
       {/* ========================================================================= */}
@@ -998,15 +1000,15 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
 
           {/* Navigation Actions */}
           <div className="flex flex-col sm:flex-row gap-3 pt-2 max-w-lg mx-auto">
-            <button
+            <PrimaryButton
               type="button"
               data-testid="send-another-btn"
               onClick={handleSendAnother}
-              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer"
+              className="flex-1 h-11 text-sm font-semibold hover:opacity-90 transition-opacity"
             >
               <Send className="w-4 h-4" />
               <span>Send Another Transfer</span>
-            </button>
+            </PrimaryButton>
             <Link
               href="/transactions"
               className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
