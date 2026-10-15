@@ -12,9 +12,10 @@ import {
   X,
   ShieldCheck,
 } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { DemoTipsDrawer } from './DemoTipsDrawer';
 import { AUTH_COOKIE_NAME } from '@/proxy';
+import { useDropdownDismiss } from '@/hooks/useDropdownDismiss';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -41,16 +42,8 @@ export function BottomNav() {
     router.refresh();
   };
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [menuOpen]);
+  const handleCloseMenu = useCallback(() => setMenuOpen(false), []);
+  useDropdownDismiss(menuRef, menuOpen, handleCloseMenu);
 
   return (
     <>

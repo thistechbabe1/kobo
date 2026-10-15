@@ -8,6 +8,7 @@ import {
   KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
+import { useDropdownDismiss } from '@/hooks/useDropdownDismiss';
 
 export interface SelectOption<T extends string = string> {
   value: T;
@@ -114,21 +115,8 @@ export function CustomSelect<T extends string = string>({
     };
   }, [isOpen, updatePanelMetrics]);
 
-  // Close on outside click
-  useEffect(() => {
-    if (!isOpen) return;
-
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        closeMenuAndFocusTrigger();
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen, closeMenuAndFocusTrigger]);
+  // Close on outside click & Escape key
+  useDropdownDismiss(containerRef, isOpen, closeMenuAndFocusTrigger);
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (!isOpen) {

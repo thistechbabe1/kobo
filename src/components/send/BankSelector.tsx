@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useId, useCallback } from 'react';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import { Bank, NIGERIAN_BANKS } from '@/lib/banks';
+import { useDropdownDismiss } from '@/hooks/useDropdownDismiss';
 
 interface BankSelectorProps {
   id?: string;
@@ -113,32 +114,7 @@ export function BankSelector({
   }, [isOpen]);
 
   // Click outside & Escape listener to close dropdown/sheet
-  useEffect(() => {
-    if (!isOpen) return;
-
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        handleClose();
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        handleClose();
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, handleClose]);
+  useDropdownDismiss(containerRef, isOpen, handleClose);
 
   const handleSelect = (bank: Bank) => {
     onSelectBank(bank);
