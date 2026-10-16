@@ -158,5 +158,11 @@ export type { EmptyStateProps } from './EmptyState';
 export { BrandLogo } from './BrandLogo';
 export type { BrandLogoProps } from './BrandLogo';
 
+// ─── Summary Row ───────────────────────────────────────────────────────────
+
+export { SummaryRow } from './SummaryRow';
+export type { SummaryRowProps } from './SummaryRow';
+
+
 
 

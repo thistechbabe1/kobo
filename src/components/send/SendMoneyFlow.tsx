@@ -20,7 +20,7 @@ import { Beneficiary, getSavedBeneficiaries, persistBeneficiary } from '@/lib/be
 import { BankSelector } from './BankSelector';
 import { BeneficiaryRail } from './BeneficiaryRail';
 import { OfficialReceipt } from '@/components/receipt/OfficialReceipt';
-import { PrimaryButton, GhostButton, SurfaceCard, CalloutBanner } from '@/components/ui';
+import { PrimaryButton, GhostButton, SurfaceCard, CalloutBanner, SummaryRow } from '@/components/ui';
 
 export interface SendMoneyFlowProps {
   initialState: CompactSessionPayload;
@@ -674,33 +674,38 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
 
             {/* Live CBN Fee Breakdown Banner */}
             <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-[var(--border-color)] space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-muted)]">Transfer Amount:</span>
-                <span className="font-semibold text-[var(--text-primary)] font-mono">
-                  {formatNairaFromKobo(transferAmountKobo)}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs items-center">
-                <span className="text-[var(--text-muted)] flex items-center gap-1">
-                  <span>CBN Transfer Fee:</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-[var(--text-muted)]">
-                    {transferAmountKobo < 500000
-                      ? 'Free (< ₦5k)'
-                      : transferAmountKobo <= 5000000
-                        ? '₦10 (₦5k–₦50k)'
-                        : '₦50 (> ₦50k)'}
-                  </span>
-                </span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
-                  {transferFeeKobo === 0 ? 'Free' : formatNairaFromKobo(transferFeeKobo)}
-                </span>
-              </div>
-              <div className="pt-2 border-t border-[var(--border-color)] flex justify-between text-xs font-bold">
-                <span className="text-[var(--text-primary)]">Total Debit:</span>
-                <span className="text-[var(--text-primary)] font-mono">
-                  {formatNairaFromKobo(totalDebitKobo)}
-                </span>
-              </div>
+              <SummaryRow
+                className="text-xs"
+                label="Transfer Amount:"
+                labelClassName="text-[var(--text-muted)]"
+                value={formatNairaFromKobo(transferAmountKobo)}
+                valueClassName="font-semibold text-[var(--text-primary)] font-mono"
+              />
+              <SummaryRow
+                className="text-xs items-center"
+                label={
+                  <>
+                    <span>CBN Transfer Fee:</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-[var(--text-muted)]">
+                      {transferAmountKobo < 500000
+                        ? 'Free (< ₦5k)'
+                        : transferAmountKobo <= 5000000
+                          ? '₦10 (₦5k–₦50k)'
+                          : '₦50 (> ₦50k)'}
+                    </span>
+                  </>
+                }
+                labelClassName="text-[var(--text-muted)] flex items-center gap-1"
+                value={transferFeeKobo === 0 ? 'Free' : formatNairaFromKobo(transferFeeKobo)}
+                valueClassName="font-semibold text-emerald-600 dark:text-emerald-400 font-mono"
+              />
+              <SummaryRow
+                className="pt-2 border-t border-[var(--border-color)] text-xs font-bold"
+                label="Total Debit:"
+                labelClassName="text-[var(--text-primary)]"
+                value={formatNairaFromKobo(totalDebitKobo)}
+                valueClassName="text-[var(--text-primary)] font-mono"
+              />
             </div>
 
             {/* Insufficient Balance Alert */}
@@ -774,44 +779,51 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
           </div>
 
           <div className="divide-y divide-[var(--border-color)] rounded-xl border border-[var(--border-color)] bg-zinc-50/50 dark:bg-zinc-900/30 p-4 text-xs space-y-3">
-            <div className="flex justify-between pb-3">
-              <span className="text-[var(--text-muted)]">Recipient</span>
-              <span className="font-bold text-[var(--text-primary)] text-right">{resolvedRecipientName}</span>
-            </div>
-            <div className="flex justify-between py-3">
-              <span className="text-[var(--text-muted)]">Bank</span>
-              <span className="font-semibold text-[var(--text-primary)] text-right">{selectedBank.name}</span>
-            </div>
-            <div className="flex justify-between py-3">
-              <span className="text-[var(--text-muted)]">Account Number</span>
-              <span className="font-mono font-semibold text-[var(--text-primary)]">
-                •••• {accountNumber.slice(-4)}
-              </span>
-            </div>
-            <div className="flex justify-between py-3">
-              <span className="text-[var(--text-muted)]">Transfer Amount</span>
-              <span className="font-mono font-bold text-[var(--text-primary)] text-sm">
-                {formatNairaFromKobo(transferAmountKobo)}
-              </span>
-            </div>
-            <div className="flex justify-between py-3">
-              <span className="text-[var(--text-muted)]">CBN Regulatory Fee</span>
-              <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-                {transferFeeKobo === 0 ? 'Free' : formatNairaFromKobo(transferFeeKobo)}
-              </span>
-            </div>
+            <SummaryRow
+              className="pb-3"
+              label="Recipient"
+              value={resolvedRecipientName}
+              valueClassName="font-bold text-[var(--text-primary)] text-right"
+            />
+            <SummaryRow
+              className="py-3"
+              label="Bank"
+              value={selectedBank.name}
+              valueClassName="font-semibold text-[var(--text-primary)] text-right"
+            />
+            <SummaryRow
+              className="py-3"
+              label="Account Number"
+              value={`•••• ${accountNumber.slice(-4)}`}
+              valueClassName="font-mono font-semibold text-[var(--text-primary)]"
+            />
+            <SummaryRow
+              className="py-3"
+              label="Transfer Amount"
+              value={formatNairaFromKobo(transferAmountKobo)}
+              valueClassName="font-mono font-bold text-[var(--text-primary)] text-sm"
+            />
+            <SummaryRow
+              className="py-3"
+              label="CBN Regulatory Fee"
+              value={transferFeeKobo === 0 ? 'Free' : formatNairaFromKobo(transferFeeKobo)}
+              valueClassName="font-mono text-emerald-600 dark:text-emerald-400 font-semibold"
+            />
             {narration && (
-              <div className="flex justify-between py-3">
-                <span className="text-[var(--text-muted)]">Narration</span>
-                <span className="italic text-[var(--text-primary)]">{narration}</span>
-              </div>
+              <SummaryRow
+                className="py-3"
+                label="Narration"
+                value={narration}
+                valueClassName="italic text-[var(--text-primary)]"
+              />
             )}
-            <div className="flex justify-between pt-3 text-sm font-extrabold text-[var(--text-primary)]">
-              <span>Total Debit</span>
-              <span className="font-mono text-[var(--brand-primary)]">
-                {formatNairaFromKobo(totalDebitKobo)}
-              </span>
-            </div>
+            <SummaryRow
+              className="pt-3 text-sm font-extrabold text-[var(--text-primary)]"
+              label="Total Debit"
+              labelClassName=""
+              value={formatNairaFromKobo(totalDebitKobo)}
+              valueClassName="font-mono text-[var(--brand-primary)]"
+            />
           </div>
 
           <div className="flex items-center gap-3 pt-2">
