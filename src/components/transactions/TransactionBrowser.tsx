@@ -9,7 +9,7 @@ import { getBankByCode } from '@/lib/banks';
 import { TransactionReceiptModal } from '@/components/receipt/TransactionReceiptModal';
 import { ReceiptData } from '@/components/receipt/OfficialReceipt';
 import { CustomSelect } from '@/components/ui/CustomSelect';
-import { PrimaryButton, GhostButton, SurfaceCard } from '@/components/ui';
+import { PrimaryButton, GhostButton, SurfaceCard, EmptyState } from '@/components/ui';
 
 interface TransactionBrowserProps {
   transactions: CompactUserTx[];
@@ -267,19 +267,21 @@ export function TransactionBrowser({ transactions }: TransactionBrowserProps) {
         </div>
 
         {resultSet.transactions.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--bg-primary)] p-8 text-center">
-            <p className="text-sm font-semibold text-[var(--text-primary)]">No transactions match those filters</p>
-            <p className="mt-2 text-xs text-[var(--text-muted)]">Try a different search or adjust the date range.</p>
-            <PrimaryButton
-              type="button"
-              size="sm"
-              onClick={handleClearFilters}
-              className="mt-4 mx-auto"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Clear filters
-            </PrimaryButton>
-          </div>
+          <EmptyState
+            title="No transactions match those filters"
+            description="Try a different search or adjust the date range."
+            action={
+              <PrimaryButton
+                type="button"
+                size="sm"
+                onClick={handleClearFilters}
+                className="mt-4 mx-auto"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Clear filters
+              </PrimaryButton>
+            }
+          />
         ) : (
           <div className="space-y-4">
             {/* Mobile Transaction List View (< 768px) */}

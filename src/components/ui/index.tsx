@@ -148,3 +148,9 @@ export function SectionHeader({
 export { CalloutBanner } from './CalloutBanner';
 export type { CalloutBannerProps, CalloutVariant } from './CalloutBanner';
 
+// ─── Empty State ───────────────────────────────────────────────────────────
+
+export { EmptyState } from './EmptyState';
+export type { EmptyStateProps } from './EmptyState';
+
+
