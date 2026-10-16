@@ -1,3 +1,7 @@
+/**
+ * Unit tests for Zod validation schemas on API routes, verifying error responses
+ * for malformed JSON, invalid data types, and out-of-boundary inputs.
+ */
 import { describe, it, expect } from 'vitest';
 import { NextRequest } from 'next/server';
 import { POST as loginPOST } from '@/app/api/auth/login/route';

@@ -1,3 +1,7 @@
+/**
+ * Unit tests for transfer business logic, CBN fee tier calculation, integer kobo arithmetic,
+ * transaction PIN validation, and sealed-cookie lockout state.
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   calculateTransferFeeKobo,

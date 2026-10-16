@@ -1,3 +1,7 @@
+/**
+ * Login route that authenticates demo credentials and sets the sealed JWE auth cookie.
+ * Enforces multi-tier in-memory per-instance rate limits and rejects unknown IPs in production.
+ */
 import { NextResponse } from 'next/server';
 import { AUTH_COOKIE_NAME, sealAuthToken } from '@/lib/session';
 import { LoginInputSchema } from '@/lib/validations';

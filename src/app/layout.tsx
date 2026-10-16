@@ -1,3 +1,7 @@
+/**
+ * Root layout configuring fonts, metadata, and an inline anti-FOUC script
+ * for synchronous dark-mode theme initialization before first paint.
+ */
 import type { Metadata } from 'next';
 import { Outfit, Inter } from 'next/font/google';
 import './globals.css';

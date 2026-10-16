@@ -1,3 +1,7 @@
+/**
+ * Registry of supported Nigerian commercial banks and licensed fintechs
+ * with CBN institution codes and NIP routing codes.
+ */
 export interface Bank {
   code: string;
   name: string;

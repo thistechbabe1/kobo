@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Multi-step money transfer flow (Recipient, Amount & Fee, Review, PIN authorization, and Receipt).
+ * Operates entirely on integer kobo; the 4-digit transaction PIN is never logged or stored.
+ */
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {

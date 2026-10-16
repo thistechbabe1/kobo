@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Marketing landing page mockup demonstrating animated dashboard telemetry,
+ * balance cards, and simulated recent transfers with motion effects.
+ */
 import { motion } from 'motion/react';
 import {
   SendHorizontal,

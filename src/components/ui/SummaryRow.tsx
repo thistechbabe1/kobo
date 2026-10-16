@@ -1,3 +1,7 @@
+/**
+ * Key-value row component for transfer review steps and fee breakdowns,
+ * ensuring consistent alignment and typography across summary cards.
+ */
 import { ReactNode, HTMLAttributes } from 'react';
 
 export interface SummaryRowProps extends HTMLAttributes<HTMLDivElement> {

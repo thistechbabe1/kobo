@@ -1,4 +1,8 @@
 // @vitest-environment jsdom
+/**
+ * Component and integration tests for OfficialReceipt and TransactionReceiptModal,
+ * verifying CBN compliance markers, print triggers, and integer kobo formatting.
+ */
 import '@testing-library/jest-dom/vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';

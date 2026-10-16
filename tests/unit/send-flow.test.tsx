@@ -1,4 +1,8 @@
 // @vitest-environment jsdom
+/**
+ * Unit and accessibility tests for SendMoneyFlow across all 5 transfer steps,
+ * verifying PIN attempt limits, keypad security, CBN fee calculation, and axe compliance.
+ */
 import '@testing-library/jest-dom/vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { axe } from 'vitest-axe';

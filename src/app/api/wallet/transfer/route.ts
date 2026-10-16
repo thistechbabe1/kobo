@@ -1,3 +1,7 @@
+/**
+ * Wallet transfer execution endpoint handling fee calculation and balance deduction in integer kobo.
+ * Transaction PIN is verified but never logged or stored; balance updates persist in the sealed cookie.
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import {
   AUTH_COOKIE_NAME,

@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Accessible modal dialog hosting the OfficialReceipt view with backdrop dismiss,
+ * Escape key trapping, and initial focus restoration.
+ */
 import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { OfficialReceipt, ReceiptData } from './OfficialReceipt';

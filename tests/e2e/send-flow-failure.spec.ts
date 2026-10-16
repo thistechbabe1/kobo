@@ -1,3 +1,7 @@
+/**
+ * Playwright E2E tests for transfer failure handling, PIN attempt decrements,
+ * lockout enforcement, and client-side double-submit button disabling.
+ */
 import { test, expect } from '@playwright/test';
 
 test.describe('End-to-End Send Flow - Failure Paths & Double Submit Prevention (feature/e2e-send-flow)', () => {

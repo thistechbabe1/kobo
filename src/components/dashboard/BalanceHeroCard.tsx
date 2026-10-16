@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Dashboard hero balance card displaying available funds formatted in Naira and Kobo.
+ * All internal arithmetic operates on integer kobo values to prevent precision loss.
+ */
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SendHorizontal, History, ShieldCheck } from 'lucide-react';

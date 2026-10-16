@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Searchable, filterable, and paginated transaction activity table with receipt modal triggering.
+ * All monetary amounts are formatted from integer kobo with full accessible screen-reader live announcements.
+ */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Clock, FileText, Filter, RotateCcw, Search } from 'lucide-react';

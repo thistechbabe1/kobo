@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Interactive developer tips drawer detailing demo credentials, PIN lockout policies,
+ * deterministic NIP trigger account numbers, and Central Bank of Nigeria (CBN) fee tiers.
+ */
 import { useState } from 'react';
 import {
   HelpCircle,

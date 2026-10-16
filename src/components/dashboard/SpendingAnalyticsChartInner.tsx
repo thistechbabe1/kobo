@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Interactive Recharts bar visualization illustrating weekly income vs expenses,
+ * formatting amounts from integer kobo with custom tooltips and legend.
+ */
 import {
   ResponsiveContainer,
   BarChart,

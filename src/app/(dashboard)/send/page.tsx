@@ -1,3 +1,7 @@
+/**
+ * Send money page that unseals encrypted wallet session state from the client cookie
+ * to hydrate the multi-step transfer flow.
+ */
 import { cookies } from 'next/headers';
 import { COOKIE_NAME, unsealSessionState } from '@/lib/session';
 import { SendMoneyFlow } from '@/components/send/SendMoneyFlow';

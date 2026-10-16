@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Login page supporting credentials authentication, demo account one-click fill,
+ * rate limit feedback, and post-login redirection.
+ */
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Wallet, ShieldAlert, ArrowRight, CheckCircle2, Lock } from 'lucide-react';

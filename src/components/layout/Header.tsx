@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Top application header containing the brand logo, theme switcher,
+ * session user badge, and logout trigger that invalidates authentication cookies.
+ */
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from './ThemeToggle';
 import { User, LogOut } from 'lucide-react';

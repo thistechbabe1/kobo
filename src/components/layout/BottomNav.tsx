@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Mobile-viewport fixed bottom navigation bar with active route highlighting,
+ * quick action links, and expandable overflow menu with outside-click dismissal.
+ */
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {

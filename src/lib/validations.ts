@@ -1,3 +1,7 @@
+/**
+ * Zod validation schemas for API inputs including authentication, account resolution,
+ * transfer authorization (4-digit numeric PIN, never stored), and beneficiary management.
+ */
 import { z } from 'zod';
 
 /**

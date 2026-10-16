@@ -1,3 +1,7 @@
+/**
+ * Logout route that terminates the session by clearing sealed authentication and
+ * wallet state HTTP-only cookies.
+ */
 import { NextResponse } from 'next/server';
 import { AUTH_COOKIE_NAME, COOKIE_NAME } from '@/lib/session';
 

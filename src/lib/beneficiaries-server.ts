@@ -1,3 +1,7 @@
+/**
+ * Server-side helpers for beneficiary operations, resolving authenticated users
+ * from sealed JWE session cookies with test header fallback.
+ */
 import { NextRequest } from 'next/server';
 import { unsealAuthToken, AUTH_COOKIE_NAME } from '@/lib/session';
 

@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Accessible searchable bank selection dropdown and mobile bottom sheet,
+ * supporting keyboard navigation, typeahead filtering, and outside dismissal.
+ */
 import { useState, useRef, useEffect, useId, useCallback } from 'react';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import { Bank, NIGERIAN_BANKS } from '@/lib/banks';

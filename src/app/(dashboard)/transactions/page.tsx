@@ -1,3 +1,7 @@
+/**
+ * Transactions page combining seeded historical records with unsealed session transactions
+ * to render the searchable transaction browser.
+ */
 import { cookies } from 'next/headers';
 import { TransactionBrowser } from '@/components/transactions/TransactionBrowser';
 import { COOKIE_NAME, getSeededTransactions, unsealSessionState } from '@/lib/session';

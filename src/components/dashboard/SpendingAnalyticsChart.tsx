@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Dynamic SSR-safe wrapper for the Recharts spending analytics chart,
+ * preventing hydration mismatches by rendering a lightweight skeleton on initial load.
+ */
 import dynamic from 'next/dynamic';
 import { ChartDataPoint } from './SpendingAnalyticsChartInner';
 import { SurfaceCard } from '@/components/ui';

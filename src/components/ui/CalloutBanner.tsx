@@ -1,3 +1,7 @@
+/**
+ * Accessible alert banner primitive with semantic role="alert" defaults for error states,
+ * supporting error, warning, info, and success variants.
+ */
 import { ReactNode, HTMLAttributes } from 'react';
 
 export type CalloutVariant = 'error' | 'warning' | 'info' | 'success';
