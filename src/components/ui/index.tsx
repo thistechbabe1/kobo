@@ -153,4 +153,10 @@ export type { CalloutBannerProps, CalloutVariant } from './CalloutBanner';
 export { EmptyState } from './EmptyState';
 export type { EmptyStateProps } from './EmptyState';
 
+// ─── Brand Logo ────────────────────────────────────────────────────────────
+
+export { BrandLogo } from './BrandLogo';
+export type { BrandLogoProps } from './BrandLogo';
+
+
 

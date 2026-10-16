@@ -7,10 +7,10 @@ import {
   ArrowRightLeft,
   SendHorizontal,
   Zap,
-  Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
 import { DemoTipsDrawer } from './DemoTipsDrawer';
+import { BrandLogo } from '@/components/ui';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -30,23 +30,11 @@ export function Sidebar() {
       >
         {/* Top: Logo and Header (shrink-0) */}
         <div className="shrink-0 h-16 px-5 border-b border-[var(--border-color)] flex items-center">
-          <Link
+          <BrandLogo
             href="/dashboard"
-            aria-label="Kobo Wallet Home"
-            className="flex items-center gap-2.5 group focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] rounded-lg p-1"
-          >
-            <div className="w-9 h-9 rounded-xl bg-[var(--brand-primary)] text-white dark:text-[#0A1411] flex items-center justify-center font-bold shadow-xs group-hover:scale-105 transition-transform">
-              <Wallet className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-xl font-extrabold font-heading tracking-tight text-[var(--text-primary)]">
-                Kobo
-              </span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--brand-primary)] block -mt-1">
-                Wallet
-              </span>
-            </div>
-          </Link>
+            ariaLabel="Kobo Wallet Home"
+            className="focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] rounded-lg p-1"
+          />
         </div>
 
         {/* Middle: Navigation (flex-1, min-h-0, overflow-y-auto only if window is very short) */}
