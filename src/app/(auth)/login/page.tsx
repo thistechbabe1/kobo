@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Wallet, ShieldAlert, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { DemoTipsDrawer } from '@/components/layout/DemoTipsDrawer';
-import { PrimaryButton, GhostButton, SurfaceCard } from '@/components/ui';
+import { PrimaryButton, GhostButton, SurfaceCard, CalloutBanner } from '@/components/ui';
 
 function LoginForm() {
   const router = useRouter();
@@ -106,12 +106,12 @@ function LoginForm() {
       </div>
 
       {errorMsg && (
-        <div
-          role="alert"
-          className="mb-4 rounded-xl border border-red-500/30 bg-red-50 dark:bg-red-950/20 px-3.5 py-2.5 text-xs font-medium text-red-700 dark:text-red-300"
+        <CalloutBanner
+          variant="error"
+          className="mb-4 px-3.5 py-2.5 text-xs font-medium"
         >
           {errorMsg}
-        </div>
+        </CalloutBanner>
       )}
 
       <form onSubmit={handleLogin} className="space-y-4 text-xs">

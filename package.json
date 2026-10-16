@@ -9,7 +9,8 @@
     "lint": "eslint src tests --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --grep-invert @visual",
+    "test:visual": "playwright test --grep @visual",
     "check-contrast": "tsx scripts/check-contrast.ts"
   },
   "dependencies": {

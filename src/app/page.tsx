@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import {
-  Wallet,
   ArrowRight,
   ShieldCheck,
   Zap,
@@ -13,6 +12,7 @@ import {
 } from 'lucide-react';
 import { AnimatedDashboardPreview } from '@/components/landing/AnimatedDashboardPreview';
 import { DemoTipsDrawer } from '@/components/layout/DemoTipsDrawer';
+import { BrandLogo } from '@/components/ui';
 
 export const metadata = {
   title: 'Kobo | Modern Digital Banking & Wallet for Nigeria',
@@ -26,19 +26,7 @@ export default function MarketingLandingPage() {
       {/* Top Header */}
       <header className="sticky top-0 z-30 w-full border-b border-[#203830] bg-[#0A1411]/90 backdrop-blur-md py-3.5 px-4 sm:px-6 lg:px-8 transition-colors">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-[#14A877] text-[#0A1411] flex items-center justify-center font-bold shadow-md group-hover:scale-105 transition-transform">
-              <Wallet className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-xl font-extrabold font-heading text-white tracking-tight">
-                Kobo
-              </span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-[#14A877] block -mt-1">
-                Wallet
-              </span>
-            </div>
-          </Link>
+          <BrandLogo href="/" variant="dark" />
 
           <nav className="hidden md:flex items-center gap-6 text-xs text-[#94A8A0]">
             <a href="#features" className="hover:text-white transition-colors">

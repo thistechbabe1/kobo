@@ -1,4 +1,4 @@
-import { ReactNode, ButtonHTMLAttributes } from 'react';
+import { ReactNode, ButtonHTMLAttributes, HTMLAttributes } from 'react';
 
 // ─── Primary CTA Button ────────────────────────────────────────────────────
 
@@ -57,7 +57,7 @@ export function GhostButton({
   };
   return (
     <button
-      className={`${fullWidth ? 'w-full' : ''} ${sizes[size]} border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] font-semibold hover:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] transition-all cursor-pointer disabled:opacity-50 ${className}`}
+      className={`${fullWidth ? 'w-full' : ''} ${sizes[size]} border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] font-semibold hover:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] transition-all cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2 ${className}`}
       {...props}
     >
       {children}
@@ -70,13 +70,15 @@ export function GhostButton({
 export function SurfaceCard({
   children,
   className = '',
-}: {
+  ...props
+}: HTMLAttributes<HTMLDivElement> & {
   children: ReactNode;
   className?: string;
 }) {
   return (
     <div
       className={`rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-color)] ${className}`}
+      {...props}
     >
       {children}
     </div>
@@ -140,3 +142,27 @@ export function SectionHeader({
     </div>
   );
 }
+
+// ─── Callout Banner ────────────────────────────────────────────────────────
+
+export { CalloutBanner } from './CalloutBanner';
+export type { CalloutBannerProps, CalloutVariant } from './CalloutBanner';
+
+// ─── Empty State ───────────────────────────────────────────────────────────
+
+export { EmptyState } from './EmptyState';
+export type { EmptyStateProps } from './EmptyState';
+
+// ─── Brand Logo ────────────────────────────────────────────────────────────
+
+export { BrandLogo } from './BrandLogo';
+export type { BrandLogoProps } from './BrandLogo';
+
+// ─── Summary Row ───────────────────────────────────────────────────────────
+
+export { SummaryRow } from './SummaryRow';
+export type { SummaryRowProps } from './SummaryRow';
+
+
+
+

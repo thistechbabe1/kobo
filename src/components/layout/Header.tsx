@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from './ThemeToggle';
-import { Wallet, User, LogOut } from 'lucide-react';
+import { User, LogOut } from 'lucide-react';
 import { AUTH_COOKIE_NAME } from '@/proxy';
+import { BrandLogo } from '@/components/ui';
 
 export function Header() {
   const router = useRouter();
@@ -25,23 +25,11 @@ export function Header() {
     <header className="sticky top-0 z-20 w-full bg-[var(--bg-surface)] border-b border-[var(--border-color)] transition-colors duration-200">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand Logo & Title (Mobile/Tablet; on lg+ it lives at the top of the fixed Sidebar) */}
-        <Link
+        <BrandLogo
           href="/dashboard"
-          aria-label="Kobo Wallet Home"
-          className="lg:hidden flex items-center gap-2.5 group focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] rounded-lg p-1"
-        >
-          <div className="w-9 h-9 rounded-xl bg-[var(--brand-primary)] text-white dark:text-[#0A1411] flex items-center justify-center font-bold shadow-xs group-hover:scale-105 transition-transform">
-            <Wallet className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-xl font-extrabold font-heading tracking-tight text-[var(--text-primary)]">
-              Kobo
-            </span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--brand-primary)] block -mt-1">
-              Wallet
-            </span>
-          </div>
-        </Link>
+          ariaLabel="Kobo Wallet Home"
+          className="lg:hidden focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] rounded-lg p-1"
+        />
 
         {/* Header Right Actions */}
         <div className="flex items-center gap-2 sm:gap-3 ml-auto">

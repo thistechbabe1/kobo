@@ -20,6 +20,7 @@ import { Beneficiary, getSavedBeneficiaries, persistBeneficiary } from '@/lib/be
 import { BankSelector } from './BankSelector';
 import { BeneficiaryRail } from './BeneficiaryRail';
 import { OfficialReceipt } from '@/components/receipt/OfficialReceipt';
+import { PrimaryButton, GhostButton, SurfaceCard, CalloutBanner, SummaryRow } from '@/components/ui';
 
 export interface SendMoneyFlowProps {
   initialState: CompactSessionPayload;
@@ -401,7 +402,7 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
       </div>
 
       {/* Header with Balance */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-4 sm:p-5 shadow-sm">
+      <SurfaceCard className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 shadow-sm">
         <div>
           <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             Available Balance
@@ -415,13 +416,14 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
           <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>CBN Regulated Transfer</span>
         </div>
-      </div>
+      </SurfaceCard>
 
       {/* Global Lockout Banner if locked on entry or during flow */}
       {isLockedOut && (
-        <div
+        <CalloutBanner
+          variant="error"
           data-testid="lockout-banner"
-          className="rounded-2xl border border-red-500/30 bg-red-50 dark:bg-red-950/20 p-4 text-red-700 dark:text-red-300 space-y-2"
+          className="rounded-2xl p-4 space-y-2"
         >
           <div className="flex items-center gap-2 font-bold text-sm">
             <Lock className="w-4 h-4 text-red-600 dark:text-red-400" />
@@ -436,7 +438,7 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
               Unlocks in {Math.floor(lockCountdownSec / 60)}m {lockCountdownSec % 60}s
             </span>
           </div>
-        </div>
+        </CalloutBanner>
       )}
 
       {/* Step Indicators */}
@@ -480,9 +482,9 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
       {/* STEP 1: Recipient Selection & Bank Picker */}
       {/* ========================================================================= */}
       {currentStep === 1 && (
-        <div
+        <SurfaceCard
           data-testid="send-step-1"
-          className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm"
+          className="p-5 sm:p-6 space-y-5 shadow-sm"
         >
           <div>
             <h2 className="text-lg font-bold text-[var(--text-primary)]">Select Recipient &amp; Bank</h2>
@@ -581,35 +583,37 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
             )}
 
             {resolutionError && (
-              <div
+              <CalloutBanner
+                variant="error"
                 data-testid="account-error-badge"
-                className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-500/30 text-red-700 dark:text-red-300"
+                className="flex items-center gap-2 p-3"
               >
                 <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
                 <span className="text-xs font-medium">{resolutionError}</span>
-              </div>
+              </CalloutBanner>
             )}
           </div>
 
-          <button
+          <PrimaryButton
             type="button"
+            fullWidth
             onClick={handleProceedToAmount}
             disabled={!resolvedRecipientName || accountNumber.length !== 10 || isLockedOut}
-            className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-11 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
           >
             <span>Continue to Amount</span>
             <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
+          </PrimaryButton>
+        </SurfaceCard>
       )}
 
       {/* ========================================================================= */}
       {/* STEP 2: Amount Entry & Live Fee Calculator */}
       {/* ========================================================================= */}
       {currentStep === 2 && (
-        <div
+        <SurfaceCard
           data-testid="send-step-2"
-          className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm"
+          className="p-5 sm:p-6 space-y-5 shadow-sm"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -670,47 +674,53 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
 
             {/* Live CBN Fee Breakdown Banner */}
             <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-[var(--border-color)] space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-muted)]">Transfer Amount:</span>
-                <span className="font-semibold text-[var(--text-primary)] font-mono">
-                  {formatNairaFromKobo(transferAmountKobo)}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs items-center">
-                <span className="text-[var(--text-muted)] flex items-center gap-1">
-                  <span>CBN Transfer Fee:</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-[var(--text-muted)]">
-                    {transferAmountKobo < 500000
-                      ? 'Free (< ₦5k)'
-                      : transferAmountKobo <= 5000000
-                        ? '₦10 (₦5k–₦50k)'
-                        : '₦50 (> ₦50k)'}
-                  </span>
-                </span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
-                  {transferFeeKobo === 0 ? 'Free' : formatNairaFromKobo(transferFeeKobo)}
-                </span>
-              </div>
-              <div className="pt-2 border-t border-[var(--border-color)] flex justify-between text-xs font-bold">
-                <span className="text-[var(--text-primary)]">Total Debit:</span>
-                <span className="text-[var(--text-primary)] font-mono">
-                  {formatNairaFromKobo(totalDebitKobo)}
-                </span>
-              </div>
+              <SummaryRow
+                className="text-xs"
+                label="Transfer Amount:"
+                labelClassName="text-[var(--text-muted)]"
+                value={formatNairaFromKobo(transferAmountKobo)}
+                valueClassName="font-semibold text-[var(--text-primary)] font-mono"
+              />
+              <SummaryRow
+                className="text-xs items-center"
+                label={
+                  <>
+                    <span>CBN Transfer Fee:</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-[var(--text-muted)]">
+                      {transferAmountKobo < 500000
+                        ? 'Free (< ₦5k)'
+                        : transferAmountKobo <= 5000000
+                          ? '₦10 (₦5k–₦50k)'
+                          : '₦50 (> ₦50k)'}
+                    </span>
+                  </>
+                }
+                labelClassName="text-[var(--text-muted)] flex items-center gap-1"
+                value={transferFeeKobo === 0 ? 'Free' : formatNairaFromKobo(transferFeeKobo)}
+                valueClassName="font-semibold text-emerald-600 dark:text-emerald-400 font-mono"
+              />
+              <SummaryRow
+                className="pt-2 border-t border-[var(--border-color)] text-xs font-bold"
+                label="Total Debit:"
+                labelClassName="text-[var(--text-primary)]"
+                value={formatNairaFromKobo(totalDebitKobo)}
+                valueClassName="text-[var(--text-primary)] font-mono"
+              />
             </div>
 
             {/* Insufficient Balance Alert */}
             {!isBalanceSufficient && transferAmountKobo > 0 && (
-              <div
+              <CalloutBanner
+                variant="warning"
                 data-testid="insufficient-funds-alert"
-                className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-center gap-2"
+                className="p-3 text-xs flex items-center gap-2"
               >
                 <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
                 <span>
                   Insufficient funds. Total debit ({formatNairaFromKobo(totalDebitKobo)}) exceeds your
                   balance of {formatNairaFromKobo(walletBalanceKobo)}.
                 </span>
-              </div>
+              </CalloutBanner>
             )}
 
             {/* Narration */}
@@ -732,34 +742,34 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
           </div>
 
           <div className="flex items-center gap-3 pt-2">
-            <button
+            <GhostButton
               type="button"
               onClick={() => setCurrentStep(1)}
-              className="w-28 sm:w-32 h-11 shrink-0 flex items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="w-28 sm:w-32 h-11 shrink-0 text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
-            </button>
-            <button
+            </GhostButton>
+            <PrimaryButton
               type="button"
               onClick={handleProceedToReview}
               disabled={!isBalanceSufficient || isLockedOut}
-              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-1 h-11 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
             >
               <span>Review Details</span>
               <ArrowRight className="w-4 h-4" />
-            </button>
+            </PrimaryButton>
           </div>
-        </div>
+        </SurfaceCard>
       )}
 
       {/* ========================================================================= */}
       {/* STEP 3: Transfer Review Summary */}
       {/* ========================================================================= */}
       {currentStep === 3 && (
-        <div
+        <SurfaceCard
           data-testid="send-step-3"
-          className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm"
+          className="p-5 sm:p-6 space-y-5 shadow-sm"
         >
           <div>
             <h2 className="text-lg font-bold text-[var(--text-primary)]">Review Transfer Details</h2>
@@ -769,75 +779,82 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
           </div>
 
           <div className="divide-y divide-[var(--border-color)] rounded-xl border border-[var(--border-color)] bg-zinc-50/50 dark:bg-zinc-900/30 p-4 text-xs space-y-3">
-            <div className="flex justify-between pb-3">
-              <span className="text-[var(--text-muted)]">Recipient</span>
-              <span className="font-bold text-[var(--text-primary)] text-right">{resolvedRecipientName}</span>
-            </div>
-            <div className="flex justify-between py-3">
-              <span className="text-[var(--text-muted)]">Bank</span>
-              <span className="font-semibold text-[var(--text-primary)] text-right">{selectedBank.name}</span>
-            </div>
-            <div className="flex justify-between py-3">
-              <span className="text-[var(--text-muted)]">Account Number</span>
-              <span className="font-mono font-semibold text-[var(--text-primary)]">
-                •••• {accountNumber.slice(-4)}
-              </span>
-            </div>
-            <div className="flex justify-between py-3">
-              <span className="text-[var(--text-muted)]">Transfer Amount</span>
-              <span className="font-mono font-bold text-[var(--text-primary)] text-sm">
-                {formatNairaFromKobo(transferAmountKobo)}
-              </span>
-            </div>
-            <div className="flex justify-between py-3">
-              <span className="text-[var(--text-muted)]">CBN Regulatory Fee</span>
-              <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-                {transferFeeKobo === 0 ? 'Free' : formatNairaFromKobo(transferFeeKobo)}
-              </span>
-            </div>
+            <SummaryRow
+              className="pb-3"
+              label="Recipient"
+              value={resolvedRecipientName}
+              valueClassName="font-bold text-[var(--text-primary)] text-right"
+            />
+            <SummaryRow
+              className="py-3"
+              label="Bank"
+              value={selectedBank.name}
+              valueClassName="font-semibold text-[var(--text-primary)] text-right"
+            />
+            <SummaryRow
+              className="py-3"
+              label="Account Number"
+              value={`•••• ${accountNumber.slice(-4)}`}
+              valueClassName="font-mono font-semibold text-[var(--text-primary)]"
+            />
+            <SummaryRow
+              className="py-3"
+              label="Transfer Amount"
+              value={formatNairaFromKobo(transferAmountKobo)}
+              valueClassName="font-mono font-bold text-[var(--text-primary)] text-sm"
+            />
+            <SummaryRow
+              className="py-3"
+              label="CBN Regulatory Fee"
+              value={transferFeeKobo === 0 ? 'Free' : formatNairaFromKobo(transferFeeKobo)}
+              valueClassName="font-mono text-emerald-600 dark:text-emerald-400 font-semibold"
+            />
             {narration && (
-              <div className="flex justify-between py-3">
-                <span className="text-[var(--text-muted)]">Narration</span>
-                <span className="italic text-[var(--text-primary)]">{narration}</span>
-              </div>
+              <SummaryRow
+                className="py-3"
+                label="Narration"
+                value={narration}
+                valueClassName="italic text-[var(--text-primary)]"
+              />
             )}
-            <div className="flex justify-between pt-3 text-sm font-extrabold text-[var(--text-primary)]">
-              <span>Total Debit</span>
-              <span className="font-mono text-[var(--brand-primary)]">
-                {formatNairaFromKobo(totalDebitKobo)}
-              </span>
-            </div>
+            <SummaryRow
+              className="pt-3 text-sm font-extrabold text-[var(--text-primary)]"
+              label="Total Debit"
+              labelClassName=""
+              value={formatNairaFromKobo(totalDebitKobo)}
+              valueClassName="font-mono text-[var(--brand-primary)]"
+            />
           </div>
 
           <div className="flex items-center gap-3 pt-2">
-            <button
+            <GhostButton
               type="button"
               onClick={() => handleBackToEdit(2)}
-              className="w-28 sm:w-32 h-11 shrink-0 flex items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="w-28 sm:w-32 h-11 shrink-0 text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Edit</span>
-            </button>
-            <button
+            </GhostButton>
+            <PrimaryButton
               type="button"
               onClick={handleProceedToPin}
               disabled={isLockedOut}
-              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 cursor-pointer"
+              className="flex-1 h-11 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
             >
               <KeyRound className="w-4 h-4" />
               <span>Authorize with PIN</span>
-            </button>
+            </PrimaryButton>
           </div>
-        </div>
+        </SurfaceCard>
       )}
 
       {/* ========================================================================= */}
       {/* STEP 4: Secure PIN Modal / Security Screen */}
       {/* ========================================================================= */}
       {currentStep === 4 && (
-        <div
+        <SurfaceCard
           data-testid="send-step-4"
-          className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm"
+          className="p-5 sm:p-6 space-y-5 shadow-sm"
         >
           <div className="text-center space-y-1">
             <div className="w-10 h-10 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center mx-auto mb-2">
@@ -873,13 +890,10 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
 
           {/* Inline Error / Lockout Banner */}
           {transferError && (
-            <div
+            <CalloutBanner
+              variant={transferError.retryable ? 'info' : 'error'}
               data-testid="transfer-error-banner"
-              className={`p-3.5 rounded-xl border text-xs space-y-2 ${
-                transferError.retryable
-                  ? 'border-sky-500/30 bg-sky-50 dark:bg-sky-950/20 text-sky-800 dark:text-sky-200'
-                  : 'border-red-500/30 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300'
-              }`}
+              className="p-3.5 text-xs space-y-2"
             >
               <div className="flex items-center gap-2 font-medium">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -897,7 +911,7 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
                   <span>Retry Transfer (Same Key)</span>
                 </button>
               )}
-            </div>
+            </CalloutBanner>
           )}
 
           {/* Numeric Keypad for Mobile and Touch / Accessible Click */}
@@ -943,20 +957,20 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3 pt-2">
-            <button
+            <GhostButton
               type="button"
               disabled={isSubmitting}
               onClick={() => handleBackToEdit(3)}
-              className="w-28 sm:w-32 h-11 shrink-0 flex items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 cursor-pointer"
+              className="w-28 sm:w-32 h-11 shrink-0 text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
             >
               <span>Cancel</span>
-            </button>
-            <button
+            </GhostButton>
+            <PrimaryButton
               type="button"
               data-testid="confirm-transfer-btn"
               disabled={pinDigits.length !== 4 || isSubmitting || isLockedOut}
               onClick={() => executeTransfer(idempotencyKey)}
-              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-1 h-11 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
             >
               {isSubmitting ? (
                 <>
@@ -969,9 +983,9 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
                   <span>Confirm &amp; Send</span>
                 </>
               )}
-            </button>
+            </PrimaryButton>
           </div>
-        </div>
+        </SurfaceCard>
       )}
 
       {/* ========================================================================= */}
@@ -998,15 +1012,15 @@ export function SendMoneyFlow({ initialState, initialBeneficiaries }: SendMoneyF
 
           {/* Navigation Actions */}
           <div className="flex flex-col sm:flex-row gap-3 pt-2 max-w-lg mx-auto">
-            <button
+            <PrimaryButton
               type="button"
               data-testid="send-another-btn"
               onClick={handleSendAnother}
-              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer"
+              className="flex-1 h-11 text-sm font-semibold hover:opacity-90 transition-opacity"
             >
               <Send className="w-4 h-4" />
               <span>Send Another Transfer</span>
-            </button>
+            </PrimaryButton>
             <Link
               href="/transactions"
               className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"

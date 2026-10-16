@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { CompactUserTx } from '@/lib/session';
 import { ArrowUpRight, ArrowDownLeft, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
-import { SurfaceCard, StatusBadge } from '@/components/ui';
+import { SurfaceCard, StatusBadge, EmptyState } from '@/components/ui';
 
 interface RecentTransactionsListProps {
   transactions: CompactUserTx[];
@@ -47,9 +47,10 @@ export function RecentTransactionsList({ transactions }: RecentTransactionsListP
       </div>
 
       {transactions.length === 0 ? (
-        <div className="text-center py-8 text-xs text-[var(--text-muted)]">
-          No recent transactions found.
-        </div>
+        <EmptyState
+          title="No recent transactions found."
+          compact
+        />
       ) : (
         <motion.ul
           variants={containerVariants}

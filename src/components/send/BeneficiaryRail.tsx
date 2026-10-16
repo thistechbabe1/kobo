@@ -1,5 +1,6 @@
 'use client';
 
+import { ReactNode } from 'react';
 import { Beneficiary } from '@/lib/beneficiaries';
 import { UserCheck } from 'lucide-react';
 
@@ -9,6 +10,7 @@ interface BeneficiaryRailProps {
   selectedAccountNumber?: string;
   onSelectBeneficiary: (beneficiary: Beneficiary) => void;
   disabled?: boolean;
+  emptyState?: ReactNode;
 }
 
 const BANK_INITIAL_COLORS: Record<string, { bg: string; text: string }> = {
@@ -25,9 +27,10 @@ export function BeneficiaryRail({
   selectedAccountNumber,
   onSelectBeneficiary,
   disabled = false,
+  emptyState,
 }: BeneficiaryRailProps) {
   if (!beneficiaries || beneficiaries.length === 0) {
-    return null;
+    return emptyState ?? null;
   }
 
   return (
