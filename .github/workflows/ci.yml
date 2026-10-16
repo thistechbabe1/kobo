@@ -41,7 +41,7 @@ jobs:
           # Use dedicated GitHub Actions secret CI_SESSION_SECRET if provisioned, with test-only fallback
           SESSION_SECRET: ${{ secrets.CI_SESSION_SECRET || 'CI_TEST_ONLY_SECRET_KEY_NOT_FOR_PRODUCTION_USE_32B!' }}
 
-      - name: Playwright E2E tests
+      - name: Playwright E2E tests (excluding @visual)
         run: npm run test:e2e
         env:
           # Use dedicated GitHub Actions secret CI_SESSION_SECRET if provisioned, with test-only fallback

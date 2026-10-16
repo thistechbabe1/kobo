@@ -5,7 +5,7 @@ const VIEWPORTS = [
   { width: 1280, height: 800, name: 'desktop' },
 ];
 
-test.describe('Visual Regression Baselines (cleanup/shared-components)', () => {
+test.describe('Visual Regression Baselines @visual', () => {
   for (const vp of VIEWPORTS) {
     test(`captures baseline screenshots at ${vp.name} (${vp.width}x${vp.height})`, async ({
       page,

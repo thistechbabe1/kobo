@@ -75,6 +75,18 @@ Every text/background pair meets W3C relative luminance contrast requirements:
 
 ---
 
+## 📸 Visual Regression Testing
+
+Playwright visual baseline screenshots (`tests/e2e/visual-baselines.spec.ts-snapshots/`) were generated on Windows (`-win32.png`). Because different operating systems render fonts, anti-aliasing, and subpixels slightly differently, cross-platform CI runners (such as GitHub Actions `ubuntu-latest`) will fail against Windows-generated baselines without matching Linux snapshots.
+
+To protect CI stability while preserving local regression safety:
+- **CI Suite (`npm run test:e2e`)**: Runs all functional end-to-end tests while excluding visual specs (`playwright test --grep-invert @visual`).
+- **Local Visual Suite (`npm run test:visual`)**: Runs only visual regression baseline checks (`playwright test --grep @visual`).
+- **Updating Snapshots**: To regenerate or update baseline snapshots locally after intentional UI changes, run:
+  ```bash
+  npm run test:visual -- --update-snapshots
+  ```
+
 ## 📅 Remaining Work Schedule (Target: Friday 9 October 2026)
 
 - **Mon 21 Sept - Thu 24 Sept**: Feature 2 Dashboard Overview, Recharts analytics, financial reconciliation & JWE cookie security. *(Completed)*
