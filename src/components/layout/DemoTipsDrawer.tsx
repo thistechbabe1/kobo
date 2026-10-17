@@ -4,7 +4,7 @@
  * Interactive developer tips drawer detailing demo credentials, PIN lockout policies,
  * deterministic NIP trigger account numbers, and Central Bank of Nigeria (CBN) fee tiers.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   HelpCircle,
   X,
@@ -101,6 +101,12 @@ export function DemoTipsDrawer({
     onClose?.();
   };
 
+  useEffect(() => {
+    const handleCustomOpen = () => setInternalOpen(true);
+    window.addEventListener('kobo:open-demo-tips', handleCustomOpen);
+    return () => window.removeEventListener('kobo:open-demo-tips', handleCustomOpen);
+  }, []);
+
   const handleCopy = (text: string) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(text);
@@ -111,15 +117,16 @@ export function DemoTipsDrawer({
 
   return (
     <>
-      {/* Floating launcher — shown on standalone pages (/ and /login) */}
+      {/* Floating launcher — desktop/tablet only (hidden below sm so it cannot overlap content on mobile) */}
       {!hideLauncher && (
         <button
           onClick={() => setInternalOpen(true)}
           type="button"
+          data-testid="demo-guide-floating-btn"
           aria-label="Open Demo Guide and Test Triggers"
-          className="flex fixed bottom-6 left-4 sm:left-6 z-40 bg-[var(--brand-primary)] text-white dark:text-[#0A1411] px-3.5 py-2.5 rounded-full shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:ring-offset-2 items-center gap-2 text-xs font-bold cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97]"
+          className="hidden sm:flex fixed bottom-6 left-6 z-40 bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-color)] px-3.5 py-2.5 rounded-full shadow-xl hover:border-[var(--brand-primary)] focus:outline-hidden focus:ring-2 focus:ring-[var(--brand-primary)] focus:ring-offset-2 items-center gap-2 text-xs font-bold cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97]"
         >
-          <Zap className="w-4 h-4 text-amber-300 dark:text-amber-900 fill-current animate-pulse shrink-0" />
+          <Zap className="w-4 h-4 text-amber-500 fill-current animate-pulse shrink-0" />
           <span>Demo Guide &amp; Triggers</span>
         </button>
       )}
