@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Accessible light and dark theme toggle syncing user preference with localStorage
+ * and the HTML document element class.
+ */
 import { useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
 

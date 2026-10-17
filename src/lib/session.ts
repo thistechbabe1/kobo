@@ -1,3 +1,7 @@
+/**
+ * JWE-sealed cookie session management via jose (EncryptJWT/jwtDecrypt).
+ * Encrypts auth tokens and compact wallet state (balance in integer kobo, transactions) under 4KB RFC limit.
+ */
 import { EncryptJWT, jwtDecrypt } from 'jose';
 
 

@@ -1,3 +1,7 @@
+/**
+ * Canonical brand logo mark and typography lockup supporting default theme-aware
+ * and high-contrast dark variants across headers, sidebars, and landing pages.
+ */
 import Link from 'next/link';
 import { Wallet } from 'lucide-react';
 

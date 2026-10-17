@@ -1,3 +1,7 @@
+/**
+ * Marketing landing page presenting product features, animated dashboard preview,
+ * CBN fee schedule highlights, and direct login entry points.
+ */
 import Link from 'next/link';
 import {
   ArrowRight,

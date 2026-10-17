@@ -1,3 +1,7 @@
+/**
+ * Edge proxy middleware enforcing route authentication via sealed JWE cookies.
+ * Redirects unauthenticated page visits to /login and rejects unauthorized /api/* calls with 401.
+ */
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { AUTH_COOKIE_NAME, unsealAuthToken } from '@/lib/session';

@@ -1,3 +1,7 @@
+/**
+ * Beneficiary management endpoint for listing, saving, and removing payees.
+ * State is stored client-side in the sealed JWE session cookie capped to respect RFC limits.
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import {
   BeneficiaryInputSchema,

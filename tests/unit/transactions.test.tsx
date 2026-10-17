@@ -1,4 +1,8 @@
 // @vitest-environment jsdom
+/**
+ * Component and accessibility tests for TransactionBrowser, verifying search, category/date filters,
+ * pagination boundaries, custom dropdown keyboard navigation, and axe compliance.
+ */
 import '@testing-library/jest-dom/vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { axe } from 'vitest-axe';

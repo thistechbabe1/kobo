@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Compact dashboard activity feed displaying recent credits and debits,
+ * formatting amounts from integer kobo and providing an empty state fallback.
+ */
 import Link from 'next/link';
 import { CompactUserTx } from '@/lib/session';
 import { ArrowUpRight, ArrowDownLeft, ArrowRight } from 'lucide-react';

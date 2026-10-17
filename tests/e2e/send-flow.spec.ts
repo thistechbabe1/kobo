@@ -1,3 +1,7 @@
+/**
+ * Playwright E2E tests for the full 5-step money transfer flow and double-click idempotency.
+ * Relies on the E2E_DETERMINISTIC flag to bypass random simulated network and provider failures.
+ */
 import { test, expect } from '@playwright/test';
 
 test.describe('End-to-End Send Flow (feature/e2e-send-flow)', () => {

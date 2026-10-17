@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Accessible custom select dropdown with keyboard traversal (arrows, home/end, typeahead),
+ * escape/outside click dismissal, and mobile-friendly touch targets.
+ */
 import {
   useState,
   useRef,

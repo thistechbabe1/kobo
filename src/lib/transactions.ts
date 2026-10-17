@@ -1,3 +1,7 @@
+/**
+ * Transaction filtering schemas, sorting utilities, and financial reconciliation.
+ * All monetary values are processed and reconciled in integer kobo to eliminate floating-point drift.
+ */
 import { z } from 'zod';
 import { CompactUserTx } from './session';
 

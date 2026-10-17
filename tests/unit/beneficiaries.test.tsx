@@ -1,4 +1,8 @@
 // @vitest-environment jsdom
+/**
+ * Unit and component tests for saved beneficiaries, storage in sealed cookies,
+ * capacity caps, and selection within the SendMoneyFlow component.
+ */
 import '@testing-library/jest-dom/vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, expect, it, beforeEach, vi } from 'vitest';

@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Official CBN-style transaction receipt with print and PNG download export.
+ * Layout and DOM structure are strictly preserved to ensure canvas rendering fidelity; amounts use integer kobo.
+ */
 import { useRef, useState } from 'react';
 import {
   CheckCircle2,

@@ -1,3 +1,7 @@
+/**
+ * In-memory sliding-window rate limiter with LRU eviction and IP extraction.
+ * Limits are tracked per server instance; production requires a distributed store like Redis.
+ */
 import { NextRequest } from 'next/server';
 
 /**

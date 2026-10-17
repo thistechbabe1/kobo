@@ -1,3 +1,7 @@
+/**
+ * Unit tests verifying financial reconciliation: current wallet balance must exactly equal
+ * opening balance plus total credits minus total debits in integer kobo.
+ */
 import { describe, it, expect } from 'vitest';
 import {
   OPENING_BALANCE_KOBO,

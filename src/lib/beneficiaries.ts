@@ -1,3 +1,7 @@
+/**
+ * Beneficiary models, compact session serializers, and seed records
+ * persisted in sealed cookies under a strict capacity cap to stay within RFC limits.
+ */
 import { z } from 'zod';
 import {
   CompactBeneficiary,

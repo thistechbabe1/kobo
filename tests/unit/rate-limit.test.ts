@@ -1,3 +1,7 @@
+/**
+ * Unit tests for in-memory sliding-window rate limiting, multi-tier login thresholds,
+ * store eviction, and client IP fallback behavior.
+ */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { POST as loginPOST } from '@/app/api/auth/login/route';

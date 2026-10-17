@@ -1,3 +1,7 @@
+/**
+ * Canonical empty state component for filtered lists and zero-data views,
+ * supporting standard bordered cards and compact inline variants.
+ */
 import { ReactNode, HTMLAttributes } from 'react';
 
 export interface EmptyStateProps extends HTMLAttributes<HTMLDivElement> {

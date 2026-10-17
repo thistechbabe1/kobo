@@ -1,3 +1,6 @@
+/**
+ * Hook for dismissing floating menus, dropdowns, and drawers on outside mousedown or Escape keypress.
+ */
 import { useEffect, RefObject } from 'react';
 
 /**

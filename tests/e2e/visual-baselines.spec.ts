@@ -1,3 +1,7 @@
+/**
+ * Playwright visual regression baseline tests for mobile (390px) and desktop (1280px) viewports.
+ * Tagged @visual for local execution only; excluded from Linux CI runs due to cross-platform font differences.
+ */
 import { test, expect } from '@playwright/test';
 
 const VIEWPORTS = [

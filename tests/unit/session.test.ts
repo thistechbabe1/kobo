@@ -1,3 +1,7 @@
+/**
+ * Unit tests for JWE session encryption, ring-buffer transaction capping,
+ * and RFC 6265 cookie size budget compliance (< 4,096 bytes).
+ */
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   sealSessionState,

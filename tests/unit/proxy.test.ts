@@ -1,3 +1,7 @@
+/**
+ * Unit tests for proxy edge middleware verifying public route passthrough,
+ * login redirects, and 401 unauthorized responses on protected API routes.
+ */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { proxy, AUTH_COOKIE_NAME } from '../../src/proxy';

@@ -1,3 +1,7 @@
+/**
+ * Unit tests for JWE authentication token sealing, unsealing, tampering detection,
+ * expiration enforcement, and logout cookie invalidation.
+ */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { sealAuthToken, unsealAuthToken } from '../../src/lib/session';
 

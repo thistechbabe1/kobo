@@ -1,3 +1,7 @@
+/**
+ * Authenticated dashboard layout shell composing the desktop sidebar, mobile bottom navigation,
+ * application header, and demo disclaimer banner.
+ */
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { BottomNav } from '@/components/layout/BottomNav';

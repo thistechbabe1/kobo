@@ -1,3 +1,7 @@
+/**
+ * Dashboard overview page unsealing wallet session state from cookies to display
+ * balance cards, spending analytics, and recent activity in integer kobo.
+ */
 import { cookies } from 'next/headers';
 import { COOKIE_NAME, unsealSessionState, getSeededTransactions } from '@/lib/session';
 import { BalanceHeroCard } from '@/components/dashboard/BalanceHeroCard';

@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Horizontal scroll rail of saved beneficiaries allowing one-tap recipient selection
+ * during transfer initiation.
+ */
 import { ReactNode } from 'react';
 import { Beneficiary } from '@/lib/beneficiaries';
 import { UserCheck } from 'lucide-react';

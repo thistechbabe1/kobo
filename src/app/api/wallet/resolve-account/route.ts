@@ -1,3 +1,7 @@
+/**
+ * Simulated NIP account name inquiry endpoint.
+ * Protected by in-memory per-instance IP rate limiting and deterministic lookup rules.
+ */
 import { NextResponse } from 'next/server';
 import { ResolveAccountInputSchema } from '@/lib/validations';
 import { checkRateLimitDetailed, getClientIp } from '@/lib/rate-limit';

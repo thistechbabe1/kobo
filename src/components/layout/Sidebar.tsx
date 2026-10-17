@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * Desktop sidebar navigation with persistent brand header, active path indicators,
+ * and quick-access trigger for the demo tips drawer.
+ */
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {

@@ -1,3 +1,7 @@
+/**
+ * Unit tests verifying WCAG 2.1 relative luminance and contrast ratio compliance
+ * across all light and dark theme design tokens.
+ */
 import { describe, it, expect } from 'vitest';
 import { TOKEN_CONTRAST_PAIRS, evaluateContrastPair } from '../../src/lib/contrast';
 

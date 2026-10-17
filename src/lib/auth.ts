@@ -1,3 +1,7 @@
+/**
+ * Authentication verification helper for server-side API requests,
+ * validating the sealed JWE auth cookie via jose.
+ */
 import { NextRequest } from 'next/server';
 import { AUTH_COOKIE_NAME, unsealAuthToken, AuthSessionPayload } from './session';
 

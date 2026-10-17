@@ -1,3 +1,7 @@
+/**
+ * Shared design system primitives (PrimaryButton, GhostButton, SurfaceCard, Badge, SectionHeader)
+ * enforcing canonical design tokens, touch targets, and accessible focus outlines.
+ */
 import { ReactNode, ButtonHTMLAttributes, HTMLAttributes } from 'react';
 
 // ─── Primary CTA Button ────────────────────────────────────────────────────
