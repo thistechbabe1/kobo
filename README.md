@@ -86,16 +86,6 @@ To protect CI stability while preserving local regression safety:
   ```bash
   npm run test:visual -- --update-snapshots
   ```
-
-## 📅 Remaining Work Schedule (Target: Friday 9 October 2026)
-
-- **Mon 21 Sept - Thu 24 Sept**: Feature 2 Dashboard Overview, Recharts analytics, financial reconciliation & JWE cookie security. *(Completed)*
-- **Fri 25 Sept - Mon 28 Sept**: Feature 3 Transaction History Page (Search bar, category filter, date filtering, pagination).
-- **Tue 29 Sept - Sat 3 Oct**: Feature 4 Send Money Flow (Account resolution mock, transaction PIN modal, rate limiter 5 payments/60s).
-- **Sun 4 Oct - Tue 6 Oct**: Feature 5 Marketing Landing Page (`/`) with product-first headline, animated dashboard preview, and small "Built with" tech strip.
-- **Wed 7 Oct - Fri 9 Oct**: Final Polish & Verification (Playwright E2E send money test, Vercel deployment, final documentation).
-- **Sat 10 Oct+**: Application Buffer Days.
-
 ---
 
 ## 🚀 Deployment Guide (Vercel)
