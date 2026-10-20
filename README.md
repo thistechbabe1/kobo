@@ -2,97 +2,38 @@
 
 > **Disclaimer**: Kobo is a mock digital wallet portfolio demo for Nigerian financial technology. All balances, account numbers, and transaction data are simulated. No real money or banking credentials are used.
 
----
+A digital wallet simulation for Nigerian payments, featuring 10-digit NUBAN transfers, instant account resolution, illustrative fee tiers, and PIN-authorized transfers.
 
-## 🛠️ Tech Stack & Design Tokens
+[Live Demo](https://kobo-theta-nine.vercel.app/)
 
-- **Framework**: Next.js 16 (App Router) in TypeScript strict mode (`noImplicitAny`).
-- **Styling**: Tailwind CSS v3.4 with custom design tokens.
-- **Typography**: Outfit (headings) & Inter (body/numerals) via `next/font/google`.
-- **Security & State**: `jose` sealed JWE HTTP-only cookies (`kobo_auth` and `kobo_state`).
-- **Charts**: Recharts (loaded via `next/dynamic` with `ssr: false`).
-- **Forms**: React Hook Form + Zod.
-- **Testing & CI**: Vitest unit test suite + GitHub Actions CI workflow.
+<img width="1280" height="750" alt="landing-dark" src="https://github.com/user-attachments/assets/6f4fa341-e9b7-4948-a3c1-59f9645cdff2" />
 
-### Tailwind CSS Version Rationale
-> **Empirically Verified Rationale**: During setup in this Windows Next.js 16 Webpack environment, Tailwind v4 (`@tailwindcss/postcss`) failed to compile due to native Rust binding initialization issues (`@tailwindcss/oxide`). Switching to Tailwind CSS v3.4 (`tailwindcss: ^3.4.17` + `postcss: ^8.4.49`) resolves all compilation issues and builds cleanly locally (`npm run build`) and in GitHub Actions CI.
+## Features
 
----
+- **NUBAN Name Resolution**: Instant inquiry across 12 commercial and digital banks.
+- **5-Step Transfer Flow**: Recipient resolution, fee calculation, transfer review, PIN entry, and downloadable receipts.
+- **Fee Calculation**: Tiered transfer fee schedule modeled on Nigerian banking guidance.
+- **Security & Lockout**: 4-digit PIN verification with automated 15-minute lockout after 3 failed attempts.
+- **Transaction Analytics**: Real-time spending charts, category filtering, and transaction search.
+- **Accessible & Responsive**: Fully responsive UI with dark mode support and keyboard navigation.
 
-## 🔒 Security & Route Protection (`src/proxy.ts`)
+## Tech Stack
 
-- **Sealed JWE Authentication Token (`kobo_auth`)**: Encrypted using `jose` (`EncryptJWT` with `A256GCM`) using `SESSION_SECRET`.
-- **Proxy Route Guard**: `src/proxy.ts` verifies `kobo_auth` on all requests:
-  - **Protected Page Routes** (`/dashboard`, `/transactions`, `/send`): Unauthenticated requests are redirected (302) to `/login?redirectTo=...`.
-  - **Protected API Routes** (`/api/*`): Unauthenticated requests return JSON `{ error: 'Unauthorized', code: 'UNAUTHORIZED' }` with status `401`.
-  - **Public Routes** (`/`, `/login`, `/api/auth/login`): Always accessible.
+- **Framework**: Next.js 16 (App Router), React 19, TypeScript
+- **Styling**: Tailwind CSS
+- **Security**: AES-256-GCM sealed cookies (`jose`)
+- **Charts & Motion**: Recharts, Motion
+- **Testing**: Vitest, Playwright
 
----
+## Getting Started
 
-## 🎨 WCAG 2.1 Color Contrast Audit Table
+```bash
+# Clone the repository
+git clone https://github.com/thistechbabe1/kobo.git
+cd kobo
 
-Every text/background pair meets W3C relative luminance contrast requirements:
+# Install dependencies
+npm install
 
-| Element / Pair | Foreground | Background | Calculated Ratio | WCAG Rating | Status |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Light Body (Graphite)** | `#1A2421` | `#FDFBF7` | **15.41:1** | **AAA** | ✅ PASS |
-| **Light Muted Text** | `#4A5551` | `#FDFBF7` | **7.50:1** | **AAA** | ✅ PASS |
-| **Light Semantic Credit Text** | `#0D7855` | `#FDFBF7` | **5.30:1** | **AA** | ✅ PASS |
-| **Light Semantic Debit Text** | `#C2410C` | `#FDFBF7` | **5.01:1** | **AA** | ✅ PASS |
-| **Light Graphic Icon (Terracotta)** | `#E05638` | `#FDFBF7` | **3.66:1** | **AA Large** | ✅ PASS |
-| **Light Body on Card** | `#1A2421` | `#FFFFFF` | **15.93:1** | **AAA** | ✅ PASS |
-| **Light Muted on Card** | `#4A5551` | `#FFFFFF` | **7.75:1** | **AA** | ✅ PASS |
-| **Light Credit Text on Card** | `#0D7855` | `#FFFFFF` | **5.48:1** | **AA** | ✅ PASS |
-| **Light Debit Text on Card** | `#C2410C` | `#FFFFFF` | **5.18:1** | **AA** | ✅ PASS |
-| **White Text on Primary Green** | `#FFFFFF` | `#0D7855` | **5.48:1** | **AA** | ✅ PASS |
-| **White Text on Deep Terracotta** | `#FFFFFF` | `#C2410C` | **5.18:1** | **AA** | ✅ PASS |
-| **Dark Body (Off-White)** | `#F4F6F5` | `#0A1411` | **17.26:1** | **AAA** | ✅ PASS |
-| **Dark Muted Text** | `#94A8A0` | `#0A1411` | **7.46:1** | **AAA** | ✅ PASS |
-| **Dark Credit Text** | `#14A877` | `#0A1411` | **6.15:1** | **AA** | ✅ PASS |
-| **Dark Debit Text (#FF6B4A)** | `#FF6B4A` | `#0A1411` | **6.65:1** | **AA** | ✅ PASS |
-| **Dark Body on Dark Card** | `#F4F6F5` | `#14241F` | **14.86:1** | **AAA** | ✅ PASS |
-| **Dark Muted on Dark Card** | `#94A8A0` | `#14241F` | **6.43:1** | **AA** | ✅ PASS |
-| **Dark Credit Text on Dark Card** | `#14A877` | `#14241F` | **5.30:1** | **AA** | ✅ PASS |
-| **Dark Debit Text (#FF6B4A) on Card** | `#FF6B4A` | `#14241F` | **5.73:1** | **AA** | ✅ PASS |
-| **Dark Text on Mint Button** | `#0A1411` | `#14A877` | **6.15:1** | **AA** | ✅ PASS |
-
----
-
-## Known Limitations & Architecture Notes
-
-- **Email-Only Rate Limiting & Account Lockout DoS Trade-Off**:
-  The login route enforces a cross-network limit of 15 failed login attempts per minute for a given email address to mitigate distributed credential stuffing. Counting only failed attempts prevents legitimate logins from consuming the quota, but introduces an inherent trade-off: an attacker intentionally submitting 15 invalid passwords can temporarily lock a victim out. In production, this trade-off is resolved using progressive CAPTCHAs, step-up MFA/OTP challenges, and risk-based anomaly detection rather than a hard lockout.
-- **PIN Lockout & State Persistence in Sealed Cookie**:
-  The transaction PIN attempt count and 15-minute security lockout timestamp (`pin` and `loc`) live in the cryptographically sealed, HTTP-only `kobo_state` session cookie. Because state is held on the client, the lockout can theoretically be reset by clearing browser cookies or replaying an old one. In a production system, PIN authentication attempts, lockouts, and wallet balances would be held in authoritative server-side state (such as Redis or a database with atomic transactional isolation).
-- **Per-Instance In-Memory Rate Limiting**:
-  API rate limits (for login, transfer, and account resolution) are maintained in-memory on the active server process. In a distributed multi-instance or serverless edge deployment (such as Vercel Edge/Serverless), memory is not shared across instances. Production deployments would back the rate limiter with server-side distributed state (such as Redis or a database).
-- **Idempotency Keys in Session Cookie**:
-  Idempotency keys are held in the sealed session cookie (`kobo_state` ring-buffer), covering resubmits after a response arrives. True distributed concurrency deduplication requires server-side distributed atomic locks (e.g. Redis SETNX / PostgreSQL advisory locks).
-- **CBN Regulatory Fee Tiers**:
-  Transfer fee tiers are modeled directly on the live Central Bank of Nigeria (CBN) *Guide to Charges* regulatory search (Free for transfers below ₦5,000; ₦10 for ₦5,000–₦50,000; ₦50 for transfers above ₦50,000).
-- **Simulated Infrastructure**:
-  Destination commercial banks, NIP account resolution, and transaction PIN verification (demo PIN `1234`) are simulated in-memory and in encrypted cookies without live banking switches or real money.
-
----
-
-## 📸 Visual Regression Testing
-
-Playwright visual baseline screenshots (`tests/e2e/visual-baselines.spec.ts-snapshots/`) were generated on Windows (`-win32.png`). Because different operating systems render fonts, anti-aliasing, and subpixels slightly differently, cross-platform CI runners (such as GitHub Actions `ubuntu-latest`) will fail against Windows-generated baselines without matching Linux snapshots.
-
-To protect CI stability while preserving local regression safety:
-- **CI Suite (`npm run test:e2e`)**: Runs all functional end-to-end tests while excluding visual specs (`playwright test --grep-invert @visual`).
-- **Local Visual Suite (`npm run test:visual`)**: Runs only visual regression baseline checks (`playwright test --grep @visual`).
-- **Updating Snapshots**: To regenerate or update baseline snapshots locally after intentional UI changes, run:
-  ```bash
-  npm run test:visual -- --update-snapshots
-  ```
----
-
-## 🚀 Deployment Guide (Vercel)
-
-1. **Connect Repository**: Import `thistechbabe1/kobo` in the Vercel Dashboard.
-2. **Environment Variables**:
-   - `SESSION_SECRET`: Generate a 32-byte secret key locally via:
-     `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-     and paste into Vercel environment variables.
-3. **Deploy**: Click **Deploy**. Vercel will run `npm run build` and publish the live URL.
+# Start local dev server
+npm run dev
