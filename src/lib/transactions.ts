@@ -141,5 +141,6 @@ export function filterTransactions(transactions: CompactUserTx[], filters: Trans
     totalPages,
     page,
     transactions: pageTransactions,
+    allFilteredTransactions: sorted,
   };
 }
