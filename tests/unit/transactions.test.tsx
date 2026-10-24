@@ -392,4 +392,44 @@ describe('transaction browser UI and edge cases', () => {
     });
     unmount();
   }, 20000);
+
+  it('renders Export CSV button with row count, enables multi-page export, and disables when empty', async () => {
+    // 1. With transactions present (shows count in label)
+    const { unmount } = render(<TransactionBrowser transactions={seedTransactions} />);
+    const exportBtn = screen.getByRole('button', { name: 'Export CSV (4)' });
+    expect(exportBtn).toBeInTheDocument();
+    expect(exportBtn).not.toBeDisabled();
+    expect(exportBtn).toHaveClass('min-h-[44px]');
+    expect(exportBtn).toHaveAttribute('title', 'Export 4 filtered transactions to CSV');
+
+    unmount();
+
+    // 2. With multi-page transactions (15 transactions across 2 pages)
+    const fifteenTxs: CompactUserTx[] = Array.from({ length: 15 }, (_, i) => ({
+      id: `MULTI_${i + 1}`,
+      typ: (i % 2 === 0 ? 'D' : 'C') as 'D' | 'C',
+      cat: 'TRF',
+      amt: (i + 1) * 10000,
+      nar: `Multi item ${i + 1}`,
+      rec: 'Recipient',
+      ts: Date.UTC(2024, 0, i + 1, 10, 0),
+      status: 'Completed',
+    }));
+
+    const { unmount: unmountMulti } = render(<TransactionBrowser transactions={fifteenTxs} />);
+    const multiExportBtn = screen.getByRole('button', { name: 'Export CSV (15)' });
+    expect(multiExportBtn).toBeInTheDocument();
+    expect(multiExportBtn).not.toBeDisabled();
+    expect(multiExportBtn).toHaveAttribute('title', 'Export 15 filtered transactions to CSV');
+
+    unmountMulti();
+
+    // 3. With empty transactions list
+    render(<TransactionBrowser transactions={[]} />);
+    const disabledExportBtn = screen.getByRole('button', { name: /Export CSV \(disabled/i });
+    expect(disabledExportBtn).toBeInTheDocument();
+    expect(disabledExportBtn).toBeDisabled();
+    expect(disabledExportBtn).toHaveTextContent('Export CSV (0)');
+    expect(disabledExportBtn).toHaveAttribute('title', 'No transactions to export');
+  });
 });

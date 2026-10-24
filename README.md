@@ -15,6 +15,7 @@ A digital wallet simulation for Nigerian payments, featuring 10-digit NUBAN tran
 - **Fee Calculation**: Tiered transfer fee schedule modeled on Nigerian banking guidance.
 - **Security & Lockout**: 4-digit PIN verification with automated 15-minute lockout after 3 failed attempts.
 - **Transaction Analytics**: Real-time spending charts, category filtering, and transaction search.
+- **Statement Export**: In-browser CSV statement download respecting active search and date filters with UTF-8 BOM.
 - **Accessible & Responsive**: Fully responsive UI with dark mode support and keyboard navigation.
 
 ## Tech Stack
